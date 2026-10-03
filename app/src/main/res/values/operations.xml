@@ -1,0 +1,56 @@
+<resources>
+ <string name="operation_in_progress">Operation in progress…</string>
+ <string name="operation_inspect">Checking root and USB devices…</string>
+ <string name="operation_prepare">Preparing USB Mass Storage…</string>
+ <string name="operation_host">Connecting the image…</string>
+ <string name="operation_eject">Ejecting and restoring USB…</string>
+ <string name="operation_catalog">Loading image sources…</string>
+ <string name="operation_refresh">Refreshing the image library…</string>
+ <string name="operation_create">Creating the image…</string>
+ <string name="operation_save">Saving settings…</string>
+ <string name="operation_usb">Applying USB configuration…</string>
+ <string name="operation_report">Collecting diagnostics…</string>
+ <string name="operation_remove">Removing the image…</string>
+ <string name="image_connected">Connected: %1$s</string>
+ <string name="image_disconnected">Not connected</string>
+ <string name="usb_settings_section">USB settings</string>
+ <string name="job_queued">Queued</string><string name="job_running">In progress</string><string name="job_paused">Paused</string><string name="job_done">Completed</string><string name="job_failed">Failed</string><string name="job_cancelled">Cancelled</string>
+ <string name="sort_title">Sort</string><string name="sort_catalog">Image catalog</string><string name="sort_jobs">Downloads</string><string name="sort_direction">Order</string><string name="sort_ascending">Ascending</string><string name="sort_descending">Descending</string><string name="sort_version">Version</string><string name="sort_arch">Architecture</string><string name="sort_progress">Progress</string><string name="sort_state">Status</string>
+ <string name="checksum_calculating">Calculating checksum…</string>
+ <string name="checksum_copy">Copy checksum</string>
+ <string name="search_empty">No matches</string>
+ <string name="search_empty_detail">Try another search or clear the search field.</string>
+ <string name="catalog_empty">No catalog loaded</string>
+ <string name="catalog_empty_detail">Load a catalog or start a download using its URL.</string>
+ <string name="checksum_recalculate">Recalculate checksum</string>
+ <string name="checksum_eject">Eject the image before recalculating its checksum.</string>
+ <string name="checksum_hold">Hold the algorithm to calculate its checksum.</string>
+ <string name="checksum_gestures">Tap an algorithm to copy its checksum. Hold to recalculate.</string>
+ <string name="usb_idle">No images connected</string>
+ <string name="usb_hosted_count">Connected images: %1$d</string>
+ <string name="operation_download">Downloading…</string>
+ <string name="operation_resize">Resizing image…</string>
+ <string name="operation_hybrid">Converting to isohybrid…</string>
+ <string name="operation_export">Exporting image…</string>
+ <string name="operation_copy">Copying image…</string>
+ <string name="mode_unavailable">Unavailable for this USB device</string>
+ <string name="scroll_to_top">Back to top</string>
+ <string name="usb_host_selection">USB host</string>
+ <string name="image_already_connected">Eject this image before connecting it again.</string>
+ <string name="language_system">Follow system</string>
+ <string name="setup_language_title">Choose your language</string>
+ <string name="setup_language_body">You can change the language later in Settings.</string>
+ <string name="settings_theme">Theme</string>
+ <string name="settings_language">Language</string>
+ <string name="settings_application">Application</string>
+ <string name="settings_images_downloads">Images and downloads</string>
+ <string name="settings_support">Help and information</string>
+ <string name="usb_connection_title">Computer connection</string>
+ <string name="usb_connection_configured">Connected to a computer</string>
+ <string name="usb_connection_disconnected">Not connected</string>
+ <string name="usb_connection_attached">USB cable connected</string>
+ <string name="usb_connection_unknown">Connection not detected</string>
+ <string name="usb_system_title">USB system</string>
+ <string name="usb_legacy_system">Android USB</string>
+ <string name="usb_system_unavailable">Not available</string>
+</resources>

@@ -1,0 +1,24 @@
+<resources>
+ <string name="usb_manual_apply">Apply manually</string>
+ <string name="image_on_disk">on disk %1$s</string>
+ <string name="hide_app_confirmation">Remove these entries from the library? Files will stay in place. Images in the app folder will still take up space.</string>
+ <string name="hide_external_confirmation">Remove these entries from the library? Files will stay in their current folders.</string>
+ <string name="storage_primary">Default folder</string>
+ <string name="storage_make_primary">Use by default</string>
+ <string name="storage_app">App folder</string>
+ <string name="storage_saf">Selected folder</string>
+ <string name="storage_root">Root folder</string>
+ <string name="storage_add_title">Add folder</string>
+ <string name="storage_root_expand">Enter a root path</string>
+ <string name="storage_remove_title">Remove folder?</string>
+ <string name="storage_remove_body">Stop scanning this folder. Its files will remain in place.</string>
+ <string name="repository_remove_title">Delete repository?</string>
+ <string name="repository_remove_body">Remove %1$s from the catalog sources? Downloaded images will remain.</string>
+ <string name="repository_empty">No repositories yet</string>
+ <string name="diagnostics_copy">Copy</string>
+ <string name="diagnostics_export">Export</string>
+ <string name="diagnostics_copied">Report copied</string>
+ <string name="diagnostics_exported">Report exported</string>
+ <string name="diagnostics_export_failed">Could not export the report</string>
+ <string name="diagnostics_loading">Collecting diagnostics…</string>
+</resources>

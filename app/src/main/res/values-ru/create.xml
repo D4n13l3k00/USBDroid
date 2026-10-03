@@ -1,0 +1,10 @@
+<resources>
+ <string name="create_title">Создание образа</string><string name="create_back">Назад</string><string name="create_button">Создать образ</string>
+ <string name="create_heading">Новый USB-диск</string><string name="create_description">Выберите размер, файловую систему и папку для IMG.</string>
+ <string name="create_filename">Имя файла</string><string name="create_invalid_name">Введите имя без слешей и переводов строки.</string>
+ <string name="create_size">Размер образа</string><string name="create_size_limits">От 4 МиБ до 1 ТиБ</string>
+ <string name="create_destination">Папка назначения</string><string name="create_fat">Форматировать в FAT</string>
+ <string name="create_fat_detail">FAT16 до 512 МиБ; FAT32 для больших образов.</string><string name="create_allocate">Выделить весь размер</string>
+ <string name="create_allocate_detail">Заполнить нулями. При отключении создаётся разреженный файл.</string>
+ <string name="create_free">Доступно для локальной обработки: %1$s</string>
+</resources>

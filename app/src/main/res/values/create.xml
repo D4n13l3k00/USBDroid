@@ -1,0 +1,10 @@
+<resources>
+ <string name="create_title">Create image</string><string name="create_back">Back</string><string name="create_button">Create image</string>
+ <string name="create_heading">A new USB drive</string><string name="create_description">Choose a size, filesystem and folder for the IMG file.</string>
+ <string name="create_filename">Filename</string><string name="create_invalid_name">Enter a filename without slashes or line breaks.</string>
+ <string name="create_size">Image size</string><string name="create_size_limits">From 4 MiB to 1 TiB</string>
+ <string name="create_destination">Destination directory</string><string name="create_fat">Format as FAT</string>
+ <string name="create_fat_detail">FAT16 below 512 MiB; FAT32 for larger images.</string><string name="create_allocate">Allocate the entire size</string>
+ <string name="create_allocate_detail">Fill with zeros. When disabled, create a sparse image.</string>
+ <string name="create_free">Available for local processing: %1$s</string>
+</resources>

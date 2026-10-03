@@ -1,0 +1,10 @@
+<resources>
+ <string name="jobs">Операции с образами</string>
+ <string name="cancel">Отмена</string>
+ <string name="import_image">Импорт образа</string>
+ <string name="copy_required">Для подключения нужна локальная копия: ядро не может открыть этот файл.</string>
+ <string name="hosting">USB-образы</string>
+ <string name="hosting_active">USB-образ подключён</string>
+ <string name="eject_all">Извлечь все образы</string>
+ <string name="eject_failed">Не удалось извлечь образ</string>
+</resources>

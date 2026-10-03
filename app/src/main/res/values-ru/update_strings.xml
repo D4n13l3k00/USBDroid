@@ -1,0 +1,20 @@
+<resources>
+ <string name="update_ready">Обновление готово к установке</string>
+ <string name="update_retry">Загрузка не удалась. Нажмите, чтобы повторить.</string>
+ <string name="update_title">Обновления приложения</string>
+ <string name="update_check">Проверить обновления</string>
+ <string name="update_checking">Проверка обновлений…</string>
+ <string name="update_current">Установлена последняя версия.</string>
+ <string name="update_available">Доступна версия %1$s</string>
+ <string name="update_download">Скачать обновление</string>
+ <string name="update_downloading">Загрузка обновления…</string>
+ <string name="update_waiting">Ожидание подключения к сети…</string>
+ <string name="update_install">Установить обновление</string>
+ <string name="update_unavailable">Публичный релиз не найден. Репозиторий закрыт, удалён или ещё не содержит релизов.</string>
+ <string name="update_rate_limit">Достигнут лимит запросов GitHub. Попробуйте позже.</string>
+ <string name="update_signature">APK подписан другим ключом и не может обновить эту установку.</string>
+ <string name="update_invalid">APK релиза отсутствует, повреждён или несовместим.</string>
+ <string name="update_space">Недостаточно места для загрузки обновления.</string>
+ <string name="update_network">Нет соединения с GitHub. Проверьте сеть и попробуйте снова.</string>
+ <string name="update_permission">Разрешите установку приложений для USBDroid, затем снова нажмите «Установить обновление».</string>
+</resources>

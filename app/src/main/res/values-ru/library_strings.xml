@@ -1,0 +1,24 @@
+<resources>
+ <string name="usb_manual_apply">Применение вручную</string>
+ <string name="image_on_disk">на диске %1$s</string>
+ <string name="hide_app_confirmation">Убрать записи из библиотеки? Файлы останутся на месте. Образы в папке приложения продолжат занимать место.</string>
+ <string name="hide_external_confirmation">Убрать записи из библиотеки? Файлы останутся в своих папках.</string>
+ <string name="storage_primary">Основная папка</string>
+ <string name="storage_make_primary">Использовать по умолчанию</string>
+ <string name="storage_app">Папка приложения</string>
+ <string name="storage_saf">Выбранная папка</string>
+ <string name="storage_root">Папка через root</string>
+ <string name="storage_add_title">Добавить папку</string>
+ <string name="storage_root_expand">Указать путь через root</string>
+ <string name="storage_remove_title">Убрать папку?</string>
+ <string name="storage_remove_body">Папка больше не будет сканироваться. Файлы останутся на месте.</string>
+ <string name="repository_remove_title">Удалить репозиторий?</string>
+ <string name="repository_remove_body">Убрать %1$s из источников каталога? Скачанные образы останутся.</string>
+ <string name="repository_empty">Репозитории ещё не добавлены</string>
+ <string name="diagnostics_copy">Копировать</string>
+ <string name="diagnostics_export">Экспорт</string>
+ <string name="diagnostics_copied">Отчёт скопирован</string>
+ <string name="diagnostics_exported">Отчёт сохранён</string>
+ <string name="diagnostics_export_failed">Не удалось сохранить отчёт</string>
+ <string name="diagnostics_loading">Сбор диагностики…</string>
+</resources>

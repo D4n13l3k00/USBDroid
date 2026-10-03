@@ -1,0 +1,21 @@
+<resources>
+ <string name="notifications_allowed">Уведомления разрешены</string>
+ <string name="welcome_title">Добро пожаловать в USBDroid</string>
+ <string name="welcome_body">Подключайте IMG и ISO к компьютеру как USB-диск или CD-ROM.\n\nДля работы нужен root. Настроим доступ, папку образов и USB.</string>
+ <string name="root_title">Root-доступ</string>
+ <string name="root_body">Разрешите USBDroid в KernelSU или Magisk. Magisk может показать запрос; в KernelSU включите доступ в списке «Суперпользователь». Для подключения образов также нужна поддержка USB Mass Storage в ядре.</string>
+ <string name="open_root_manager">Открыть root-менеджер</string>
+ <string name="permissions_title">Настройка доступа</string>
+ <string name="permissions_body">В уведомлениях видны операции и кнопка извлечения образов. Чтобы открыть другую папку, выберите её через Android.</string>
+ <string name="request_root">Запросить root-доступ</string>
+ <string name="retry_root">Повторить запрос root</string>
+ <string name="root_waiting">Ожидание разрешения root…</string>
+ <string name="root_granted">Root-доступ получен</string>
+ <string name="allow_notifications">Разрешить уведомления</string>
+ <string name="choose_directory">Выбрать папку образов</string>
+ <string name="permissions_optional">Уведомления и выбор папки необязательны. Образы можно хранить в папке приложения.</string>
+ <string name="start_app">Начать пользоваться</string>
+ <string name="root_required_title">Без root не работает</string>
+ <string name="root_required_body">Для подключения образов через USB нужен root. Разрешите USBDroid доступ в KernelSU или Magisk и повторите запрос.</string>
+ <string name="close_app">Закрыть приложение</string>
+</resources>

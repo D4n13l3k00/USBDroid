@@ -1,0 +1,6 @@
+<resources>
+<string name="filesystem_label">Filesystem</string>
+<string name="filesystem_empty">Empty</string>
+<string name="filesystem_size_limits">%1$d–%2$d MiB</string>
+<string name="filesystem_formatting">Formatting</string>
+</resources>

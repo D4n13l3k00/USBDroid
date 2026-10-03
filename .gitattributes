@@ -1,0 +1,23 @@
+* text=auto
+*.kt text eol=lf
+*.kts text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.jar binary
+*.so binary
+*.bin binary
+*.efi binary
+*.iso binary
+*.gz binary
+*.xz binary
+*.c text eol=lf
+*.h text eol=lf
+*.S text eol=lf
+*.patch text eol=lf
+native/filesystems/recipes/** -whitespace
+native/src/** -whitespace
+app/src/main/assets/licenses/** -whitespace

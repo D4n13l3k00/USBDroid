@@ -1,0 +1,1 @@
+<resources><style name="Theme.USBDroid" parent="Theme.AppCompat.DayNight.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:windowActionModeOverlay">true</item><item name="android:windowSoftInputMode">adjustResize</item></style></resources>

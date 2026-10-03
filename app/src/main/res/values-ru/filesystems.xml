@@ -1,0 +1,6 @@
+<resources>
+<string name="filesystem_label">Файловая система</string>
+<string name="filesystem_empty">Пустой</string>
+<string name="filesystem_size_limits">%1$d–%2$d МиБ</string>
+<string name="filesystem_formatting">Форматирование</string>
+</resources>

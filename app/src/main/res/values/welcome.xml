@@ -1,0 +1,21 @@
+<resources>
+ <string name="notifications_allowed">Notifications allowed</string>
+ <string name="welcome_title">Welcome to USBDroid</string>
+ <string name="welcome_body">Connect IMG and ISO images to your computer as a USB drive or CD-ROM.\n\nRoot is required. Set up access, image storage and USB first.</string>
+ <string name="root_title">Root access</string>
+ <string name="root_body">Allow USBDroid in KernelSU or Magisk. Magisk may show a permission prompt; in KernelSU, enable access in the Superuser list. USB hosting also requires kernel Mass Storage support.</string>
+ <string name="open_root_manager">Open root manager</string>
+ <string name="permissions_title">Set up access</string>
+ <string name="permissions_body">Notifications show operation progress and an eject button. Select a folder through Android to grant file access.</string>
+ <string name="request_root">Request root access</string>
+ <string name="retry_root">Retry root request</string>
+ <string name="root_waiting">Waiting for root permission…</string>
+ <string name="root_granted">Root access granted</string>
+ <string name="allow_notifications">Allow notifications</string>
+ <string name="choose_directory">Choose image directory</string>
+ <string name="permissions_optional">Notifications and folder selection are optional. You can keep images in the app folder.</string>
+ <string name="start_app">Start using USBDroid</string>
+ <string name="root_required_title">Root required</string>
+ <string name="root_required_body">USB image hosting requires root. Allow USBDroid access in KernelSU or Magisk, then retry.</string>
+ <string name="close_app">Close application</string>
+</resources>

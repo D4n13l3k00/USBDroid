@@ -1,0 +1,79 @@
+[
+  {
+    "architecture": "x86_64",
+    "name": "ntfs-3g",
+    "version": "2026.9.28",
+    "sha256": "03f89d63fb201d6e3e8f35cfc72a0e35a86d613b0642b06771910411c7684e2b",
+    "url": "https://packages-cf.termux.dev/apt/termux-root/pool/stable/n/ntfs-3g/ntfs-3g_2026.9.28_x86_64.deb"
+  },
+  {
+    "architecture": "x86_64",
+    "name": "btrfs-progs",
+    "version": "7.1",
+    "sha256": "ef232fc76d51419269818aa6ceafb970e643d93e32d5fe9e95d7faca028d6b3c",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/b/btrfs-progs/btrfs-progs_7.1_x86_64.deb"
+  },
+  {
+    "architecture": "x86_64",
+    "name": "e2fsprogs",
+    "version": "1.47.4",
+    "sha256": "35b581ffb5eba0f7bceb5a21f52ffd1310144f8702bfbfced076e2b4b0cfafac",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/e/e2fsprogs/e2fsprogs_1.47.4_x86_64.deb"
+  },
+  {
+    "architecture": "x86_64",
+    "name": "liblzo",
+    "version": "2.10-5",
+    "sha256": "90fe00b4b8746317c3698d50294fced19df5741e5e5f81e33cc90c86693398c7",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/libl/liblzo/liblzo_2.10-5_x86_64.deb"
+  },
+  {
+    "architecture": "x86_64",
+    "name": "libuuid",
+    "version": "2.42.4",
+    "sha256": "0eed64e2cb1cb22e214e29e25c73e278a48b216042884253dc29896027a7c3d8",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/libu/libuuid/libuuid_2.42.4_x86_64.deb"
+  },
+  {
+    "architecture": "x86_64",
+    "name": "libblkid",
+    "version": "2.42.4",
+    "sha256": "0bc25f346932b6ebd447eea51606ad4ee64bfcfce520e73f5e1ffeadb11c3d24",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/libb/libblkid/libblkid_2.42.4_x86_64.deb"
+  },
+  {
+    "architecture": "x86_64",
+    "name": "libandroid-posix-semaphore",
+    "version": "0.1-4",
+    "sha256": "4bde3f8bc00fa59761544593f0606a05e4b449801f1c79038c42ce66988d0eb0",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/liba/libandroid-posix-semaphore/libandroid-posix-semaphore_0.1-4_x86_64.deb"
+  },
+  {
+    "architecture": "x86_64",
+    "name": "util-linux",
+    "version": "2.42.4",
+    "sha256": "7fde1137a041782cb6950ee701a25b93e6e16b5cc64b36f7d044cdd358ddfc37",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/u/util-linux/util-linux_2.42.4_x86_64.deb"
+  },
+  {
+    "architecture": "x86_64",
+    "name": "zlib",
+    "version": "1.3.2",
+    "sha256": "c61b089dd30981452f5953b2bad4c4e7857062b2abd971f87fb0aec441bc02f4",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/z/zlib/zlib_1.3.2_x86_64.deb"
+  },
+  {
+    "architecture": "x86_64",
+    "name": "zstd",
+    "version": "1.5.7-1",
+    "sha256": "a76ba6c3d8742819bf4fff7780eb2e022269412700fc8f4471f530cc0d81833f",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/z/zstd/zstd_1.5.7-1_x86_64.deb"
+  },
+  {
+    "architecture": "x86_64",
+    "name": "exfatprogs",
+    "version": "1.4.3",
+    "sha256": "398c07e17f9b5afb32b767800d9cfba2bd20d6955dd8c855b1fae3c9be919ce3",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/e/exfatprogs/exfatprogs_1.4.3_x86_64.deb"
+  }
+]

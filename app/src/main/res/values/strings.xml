@@ -1,0 +1,10 @@
+<resources>
+ <string name="jobs">Image operations</string>
+ <string name="cancel">Cancel</string>
+ <string name="import_image">Import image</string>
+ <string name="copy_required">A local copy is needed for USB hosting: the kernel cannot open this file.</string>
+ <string name="hosting">USB images</string>
+ <string name="hosting_active">USB image connected</string>
+ <string name="eject_all">Eject all images</string>
+ <string name="eject_failed">Could not eject image</string>
+</resources>

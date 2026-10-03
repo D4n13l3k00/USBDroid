@@ -1,0 +1,20 @@
+<resources>
+ <string name="update_ready">Update ready to install</string>
+ <string name="update_retry">Download failed. Tap to retry.</string>
+ <string name="update_title">App updates</string>
+ <string name="update_check">Check for updates</string>
+ <string name="update_checking">Checking…</string>
+ <string name="update_current">You have the latest version.</string>
+ <string name="update_available">Version %1$s is available</string>
+ <string name="update_download">Download update</string>
+ <string name="update_downloading">Downloading update…</string>
+ <string name="update_waiting">Waiting for a connection…</string>
+ <string name="update_install">Install update</string>
+ <string name="update_unavailable">No public release found. The repository is private, missing or has no releases yet.</string>
+ <string name="update_rate_limit">GitHub request limit reached. Try again later.</string>
+ <string name="update_signature">The APK has a different signing key. It cannot update this installation.</string>
+ <string name="update_invalid">The release APK is missing, damaged or incompatible.</string>
+ <string name="update_space">Not enough free space to download the update.</string>
+ <string name="update_network">Cannot connect to GitHub. Check the network and try again.</string>
+ <string name="update_permission">Allow USBDroid to install apps, then tap Install update again.</string>
+</resources>

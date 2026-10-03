@@ -1,0 +1,56 @@
+<resources>
+ <string name="operation_in_progress">Выполняется операция…</string>
+ <string name="operation_inspect">Проверка root и USB-устройств…</string>
+ <string name="operation_prepare">Подготовка USB-накопителя…</string>
+ <string name="operation_host">Подключение образа…</string>
+ <string name="operation_eject">Извлечение и восстановление USB…</string>
+ <string name="operation_catalog">Загрузка источников образов…</string>
+ <string name="operation_refresh">Обновление библиотеки образов…</string>
+ <string name="operation_create">Создание образа…</string>
+ <string name="operation_save">Сохранение настроек…</string>
+ <string name="operation_usb">Применение USB-конфигурации…</string>
+ <string name="operation_report">Сбор диагностики…</string>
+ <string name="operation_remove">Удаление образа…</string>
+ <string name="image_connected">Подключён: %1$s</string>
+ <string name="image_disconnected">Не подключён</string>
+ <string name="usb_settings_section">Настройки USB</string>
+ <string name="job_queued">В очереди</string><string name="job_running">Выполняется</string><string name="job_paused">Приостановлено</string><string name="job_done">Завершено</string><string name="job_failed">Ошибка</string><string name="job_cancelled">Отменено</string>
+ <string name="sort_title">Сортировка</string><string name="sort_catalog">Каталог образов</string><string name="sort_jobs">Загрузки</string><string name="sort_direction">Порядок</string><string name="sort_ascending">По возрастанию</string><string name="sort_descending">По убыванию</string><string name="sort_version">Версия</string><string name="sort_arch">Архитектура</string><string name="sort_progress">Прогресс</string><string name="sort_state">Состояние</string>
+ <string name="checksum_calculating">Вычисление хеша…</string>
+ <string name="checksum_copy">Копировать хеш</string>
+ <string name="search_empty">Ничего не найдено</string>
+ <string name="search_empty_detail">Измените запрос или очистите строку поиска.</string>
+ <string name="catalog_empty">Каталог ещё не загружен</string>
+ <string name="catalog_empty_detail">Загрузите каталог или начните скачивание по ссылке.</string>
+ <string name="checksum_recalculate">Пересчитать хеш</string>
+ <string name="checksum_eject">Извлеките образ перед пересчётом хеша.</string>
+ <string name="checksum_hold">Удерживайте алгоритм, чтобы вычислить хеш.</string>
+ <string name="checksum_gestures">Нажатие на алгоритм копирует хеш. Удержание запускает пересчёт.</string>
+ <string name="usb_idle">Нет подключённых образов</string>
+ <string name="usb_hosted_count">Подключено образов: %1$d</string>
+ <string name="operation_download">Скачивание…</string>
+ <string name="operation_resize">Изменение размера образа…</string>
+ <string name="operation_hybrid">Преобразование isohybrid…</string>
+ <string name="operation_export">Экспорт образа…</string>
+ <string name="operation_copy">Копирование образа…</string>
+ <string name="mode_unavailable">Недоступно для этого USB-устройства</string>
+ <string name="scroll_to_top">Наверх</string>
+ <string name="usb_host_selection">USB-хост</string>
+ <string name="image_already_connected">Извлеките образ перед повторным подключением.</string>
+ <string name="language_system">Как в системе</string>
+ <string name="setup_language_title">Выберите язык</string>
+ <string name="setup_language_body">Язык можно изменить позже в настройках.</string>
+ <string name="settings_theme">Тема</string>
+ <string name="settings_language">Язык</string>
+ <string name="settings_application">Приложение</string>
+ <string name="settings_images_downloads">Образы и загрузки</string>
+ <string name="settings_support">Помощь и информация</string>
+ <string name="usb_connection_title">Подключение к компьютеру</string>
+ <string name="usb_connection_configured">Подключён к компьютеру</string>
+ <string name="usb_connection_disconnected">Не подключён</string>
+ <string name="usb_connection_attached">USB-кабель подключён</string>
+ <string name="usb_connection_unknown">Подключение не определено</string>
+ <string name="usb_system_title">USB-система</string>
+ <string name="usb_legacy_system">Android USB</string>
+ <string name="usb_system_unavailable">Недоступна</string>
+</resources>

@@ -1,0 +1,79 @@
+[
+  {
+    "architecture": "arm",
+    "name": "ntfs-3g",
+    "version": "2026.9.28",
+    "sha256": "bad6979e744f1e5a7d70266f3a1d25860709e96894e6b5e9eeda635696cc1b12",
+    "url": "https://packages-cf.termux.dev/apt/termux-root/pool/stable/n/ntfs-3g/ntfs-3g_2026.9.28_arm.deb"
+  },
+  {
+    "architecture": "arm",
+    "name": "btrfs-progs",
+    "version": "7.1",
+    "sha256": "f334dd78363f020c1b6d42132887b41e7ec53b1d28cf57326d9ceb2b5c5b795e",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/b/btrfs-progs/btrfs-progs_7.1_arm.deb"
+  },
+  {
+    "architecture": "arm",
+    "name": "e2fsprogs",
+    "version": "1.47.4",
+    "sha256": "3fc78a1af85a1e86e3a4df03724a6fed614454500969adb0ef85bb755b49a715",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/e/e2fsprogs/e2fsprogs_1.47.4_arm.deb"
+  },
+  {
+    "architecture": "arm",
+    "name": "liblzo",
+    "version": "2.10-5",
+    "sha256": "ed0d20f5c6316c3a226476a06738bfce2e0436dc65517a9e82180c02c36d06fe",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/libl/liblzo/liblzo_2.10-5_arm.deb"
+  },
+  {
+    "architecture": "arm",
+    "name": "libuuid",
+    "version": "2.42.4",
+    "sha256": "d1e5aa6560b7887620dda4ea6addc22e568f960e2ed66e5aabdb4a5ad8075a81",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/libu/libuuid/libuuid_2.42.4_arm.deb"
+  },
+  {
+    "architecture": "arm",
+    "name": "libblkid",
+    "version": "2.42.4",
+    "sha256": "ba958b74d249c3e366bee59014e031b568137b49245756ee769da00834d7e1ff",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/libb/libblkid/libblkid_2.42.4_arm.deb"
+  },
+  {
+    "architecture": "arm",
+    "name": "libandroid-posix-semaphore",
+    "version": "0.1-4",
+    "sha256": "317f87d9a3e127bc9d694a558dccac7ff8080f36cbcc33d9c478819f029b6055",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/liba/libandroid-posix-semaphore/libandroid-posix-semaphore_0.1-4_arm.deb"
+  },
+  {
+    "architecture": "arm",
+    "name": "util-linux",
+    "version": "2.42.4",
+    "sha256": "fcb64b09507c41ee94e2ce4b2a141b958fb3c4777d75840605890a63fb0d556a",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/u/util-linux/util-linux_2.42.4_arm.deb"
+  },
+  {
+    "architecture": "arm",
+    "name": "zlib",
+    "version": "1.3.2",
+    "sha256": "c63ee590f2f02254725bdd8e415582c70737b63712a20d5395b45e4b13ffffc5",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/z/zlib/zlib_1.3.2_arm.deb"
+  },
+  {
+    "architecture": "arm",
+    "name": "zstd",
+    "version": "1.5.7-1",
+    "sha256": "87031a6369a7fd14108e4612d35e6296f8b933c6bc4d383b8aa18044d26f11f5",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/z/zstd/zstd_1.5.7-1_arm.deb"
+  },
+  {
+    "architecture": "arm",
+    "name": "exfatprogs",
+    "version": "1.4.3",
+    "sha256": "4f7980acfd65f6fd2e8b37bc5a5304e785a3e51a5eaadfd93edeca23a0fbcc60",
+    "url": "https://packages-cf.termux.dev/apt/termux-main/pool/main/e/exfatprogs/exfatprogs_1.4.3_arm.deb"
+  }
+]
