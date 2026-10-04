@@ -84,6 +84,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: release-assets
@@ -94,4 +95,4 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$RELEASE_TAG" release-assets/*.apk release-assets/SHA256SUMS --verify-tag --title "$RELEASE_TAG" --notes "First release of USBDroid. USB image hosting, image creation and formatting, downloads, and OTA updates through GitHub Releases."
+          gh release create "$RELEASE_TAG" release-assets/*.apk release-assets/SHA256SUMS --verify-tag --title "$RELEASE_TAG" --notes-file .github/release-notes.md

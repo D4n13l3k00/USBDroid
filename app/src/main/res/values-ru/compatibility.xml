@@ -1,0 +1,6 @@
+<resources>
+ <string name="usb_compatibility">Режим совместимости USB</string>
+ <string name="usb_compatibility_description">Поддерживает ConfigFS, если Android сбрасывает конфигурацию USB. Включите, если диск отключается или не определяется.</string>
+ <string name="usb_compatibility_failed">Восстановление USB остановлено</string>
+ <string name="usb_compatibility_failed_description">Не удалось сохранить подключение диска. Извлеките образы и проверьте диагностику.</string>
+</resources>

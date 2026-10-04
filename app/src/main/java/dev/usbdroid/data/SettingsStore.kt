@@ -10,7 +10,7 @@ class SettingsStore(private val context: Context) {
  val flow = context.settingsDataStore.data.map { p -> Preferences(
   theme = p[stringPreferencesKey("theme")] ?: "system", dynamic = p[booleanPreferencesKey("dynamic")] ?: true,
   amoled = p[booleanPreferencesKey("amoled")] ?: false, keepAwake = p[booleanPreferencesKey("awake")] ?: true,
-  autoUsb = p[booleanPreferencesKey("autoUsb")] ?: true, usbSystem = p[stringPreferencesKey("usbSystem")] ?: "auto",
+  autoUsb = p[booleanPreferencesKey("autoUsb")] ?: true, usbCompatibility = p[booleanPreferencesKey("usbCompatibility")] ?: false, usbSystem = p[stringPreferencesKey("usbSystem")] ?: "auto",
   usbMode = p[stringPreferencesKey("usbMode")] ?: "mass_storage", autoHybrid = p[booleanPreferencesKey("autoHybrid")] ?: false,
   language = p[stringPreferencesKey("language")] ?: "system", welcomeComplete = p[booleanPreferencesKey("welcomeComplete")] ?: false,
   setupStep = p[intPreferencesKey("setupStep")] ?: -1, setupJob = p[stringPreferencesKey("setupJob")] ?: "", setupLun = p[stringPreferencesKey("setupLun")] ?: "",
@@ -37,7 +37,7 @@ class SettingsStore(private val context: Context) {
  suspend fun rememberHost(mode: String) { context.settingsDataStore.edit { it[stringPreferencesKey("lastHostMode")] = mode } }
  suspend fun save(p: Preferences) { context.settingsDataStore.edit {
   it[stringPreferencesKey("theme")] = p.theme; it[booleanPreferencesKey("dynamic")] = p.dynamic; it[booleanPreferencesKey("amoled")] = p.amoled
-  it[booleanPreferencesKey("awake")] = p.keepAwake; it[booleanPreferencesKey("autoUsb")] = p.autoUsb; it[stringPreferencesKey("usbSystem")] = p.usbSystem
+  it[booleanPreferencesKey("awake")] = p.keepAwake; it[booleanPreferencesKey("autoUsb")] = p.autoUsb; it[booleanPreferencesKey("usbCompatibility")] = p.usbCompatibility; it[stringPreferencesKey("usbSystem")] = p.usbSystem
   it[stringPreferencesKey("usbMode")] = p.usbMode; it[booleanPreferencesKey("autoHybrid")] = p.autoHybrid; it[stringPreferencesKey("language")] = p.language
   it[booleanPreferencesKey("welcomeComplete")] = p.welcomeComplete
   it[stringPreferencesKey("imageSort")] = p.imageSort; it[booleanPreferencesKey("imageDescending")] = p.imageDescending

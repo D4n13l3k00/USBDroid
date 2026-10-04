@@ -26,20 +26,21 @@ import dev.usbdroid.working
  var system by rememberSaveable { mutableStateOf(state.preferences.usbSystem) }
  var mode by rememberSaveable { mutableStateOf(state.preferences.usbMode) }
  var automatic by rememberSaveable { mutableStateOf(state.preferences.autoUsb) }
+ var compatibility by rememberSaveable { mutableStateOf(state.preferences.usbCompatibility) }
  var permanent by rememberSaveable { mutableStateOf(false) }
  var apply by remember { mutableStateOf(false) }
  var renderApply by remember { mutableStateOf(false) }
  val saving = state.working("settings")
  val applying = state.working("usb-mode")
  val enabled = !saving && !applying
- val changed = system != state.preferences.usbSystem || mode != state.preferences.usbMode || automatic != state.preferences.autoUsb
+ val changed = compatibility != state.preferences.usbCompatibility || system != state.preferences.usbSystem || mode != state.preferences.usbMode || automatic != state.preferences.autoUsb
  LaunchedEffect(apply) { if(apply) renderApply = true else { kotlinx.coroutines.delay(180); renderApply = false } }
  BackHandler(onBack = close)
  Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.usb_advanced)) }, navigationIcon = { IconButton(close) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.create_back)) } }) }, bottomBar = {
   Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
    Row(Modifier.navigationBarsPadding().fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
     TextButton(close, Modifier.weight(1f), enabled = enabled) { Text(stringResource(R.string.ui_67)) }
-    BusyButton(stringResource(R.string.ui_39), saving, { model.settings(state.preferences.copy(usbSystem = system, usbMode = mode, autoUsb = automatic), close) }, Modifier.weight(1f), enabled = changed && !applying)
+    BusyButton(stringResource(R.string.ui_39), saving, { model.settings(state.preferences.copy(usbSystem = system, usbMode = mode, autoUsb = automatic, usbCompatibility = compatibility), close) }, Modifier.weight(1f), enabled = changed && !applying)
    }
   }
  }) { padding ->
@@ -59,6 +60,9 @@ import dev.usbdroid.working
       UsbSectionHeading(stringResource(R.string.ui_35), Icons.Rounded.Usb)
       listOf("mass_storage" to R.string.usb_mode_mass_storage, "none" to R.string.usb_mode_none).forEach { (id, title) -> UsbRadioRow(stringResource(title), mode == id, enabled) { mode = id } }
      }
+    }
+    Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
+     ListItem(headlineContent = { Text(stringResource(R.string.usb_compatibility)) }, supportingContent = { Text(stringResource(R.string.usb_compatibility_description)) }, leadingContent = { Icon(Icons.Rounded.Build, null, tint = MaterialTheme.colorScheme.primary) }, trailingContent = { Switch(compatibility, { compatibility = it }, enabled = enabled) }, colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow))
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     Text(stringResource(R.string.usb_manual_apply), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)

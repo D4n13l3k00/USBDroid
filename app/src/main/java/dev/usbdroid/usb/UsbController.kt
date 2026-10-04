@@ -44,6 +44,7 @@ data class Lun(val path: String, val file: String, val readOnly: Boolean, val cd
 data class UsbCapabilities(val backend: String, val readOnly: Boolean, val cdrom: Boolean)
 data class HostingSession(val lun: String, val image: String, val backend: String)
 data class UsbStatus(val root: Boolean = false, val mode: String = "", val cable: String = "", val luns: List<Lun> = emptyList(), val error: String? = null)
+enum class CompatibilityCheck { NO_SESSIONS, HEALTHY, REPAIRED }
 enum class HostMode(val label: String, val ro: Boolean, val cd: Boolean) { READ_ONLY("USB • read only", true, false), WRITABLE("USB • read / write", false, false), CDROM("CD-ROM", true, true) }
 
 interface UsbBackend {
@@ -74,9 +75,13 @@ class ConfigFsBackend(private val io: UsbIo, private val gadget: String, private
   return JSONObject().put("gadget", gadget).put("config", config).put("udc", io.read("$gadget/UDC")).put("links", JSONObject()).put("hiddenLinks", hidden).put("descriptors", descriptors).put("otherControllers", otherControllers)
  }
  override fun activate(lun: Lun, mode: String, snapshot: JSONObject) {
+  if(snapshot.optBoolean("compatibility")) {
+   io.shell.run("setprop sys.usb.config cdrom; setprop sys.usb.configfs 1")
+  }
   val function = lun.path.substringBefore("/lun."); val config = snapshot.getString("config")
   val controller = snapshot.getString("udc").ifBlank { io.shell.run("ls /sys/class/udc | head -n 1") }
   require(controller.isNotBlank()) { "USB device controller unavailable" }
+  snapshot.put("activeController", controller)
   val existing = io.shell.run("for p in ${RootShell.quote(config)}/*; do if [ -L \"${'$'}p\" ]; then readlink -f \"${'$'}p\"; fi; done")
   val needsLink = function !in existing.lines()
   val link = "$config/usbdroid-${function.hashCode().toUInt()}"
@@ -94,7 +99,19 @@ class ConfigFsBackend(private val io: UsbIo, private val gadget: String, private
   for(path in descriptors.keys()) { io.validate(path); io.write(path, when(path.substringAfterLast('/')) { "manufacturer" -> "USBDroid"; "product" -> "USBDroid USB Disk"; "serialnumber" -> "USBDroid-$anonymousId"; else -> "0" }) }
   if(needsLink) io.shell.run("ln -s ${RootShell.quote(function)} ${RootShell.quote(link)}")
   io.write("$gadget/UDC", controller)
+  if(snapshot.optBoolean("compatibility")) io.shell.run("setprop sys.usb.state cdrom")
   if(needsLink) check(io.shell.run("if [ -L ${RootShell.quote(link)} ]; then readlink -f ${RootShell.quote(link)}; fi") == function) { "Android USB service removed the mass-storage function" }
+ }
+ fun maintain(luns: List<Lun>, snapshot: JSONObject): Boolean {
+  val config = snapshot.getString("config")
+  val targets = io.shell.run("for p in ${RootShell.quote(config)}/*; do if [ -L \"${'$'}p\" ]; then readlink -f \"${'$'}p\"; fi; done").lines()
+  val controller = snapshot.optString("activeController")
+  val others = snapshot.optJSONObject("otherControllers") ?: JSONObject()
+  val hidden = snapshot.optJSONObject("hiddenLinks") ?: JSONObject()
+  val changed = hidden.keys().asSequence().any { hidden.getString(it) in targets } || luns.any { it.path.substringBefore("/lun.") !in targets } || controller.isBlank() || io.read("$gadget/UDC") != controller || others.keys().asSequence().any { io.read(it).isNotBlank() }
+  if(!changed) return false
+  for(lun in luns) activate(lun, "mass_storage", snapshot)
+  return true
  }
  override fun restore(snapshot: JSONObject) {
   val links = snapshot.getJSONObject("links")
@@ -110,6 +127,9 @@ class ConfigFsBackend(private val io: UsbIo, private val gadget: String, private
    io.write("$gadget/UDC", snapshot.getString("udc"))
    val otherControllers = snapshot.optJSONObject("otherControllers") ?: JSONObject()
    for(path in otherControllers.keys()) { io.validate(path); io.write(path, otherControllers.getString(path)) }
+   snapshot.optJSONObject("usbProperties")?.let { props ->
+    for(name in listOf("sys.usb.configfs", "sys.usb.config", "sys.usb.state")) io.shell.run("setprop $name ${RootShell.quote(props.getString(name))}")
+   }
   }
  }
 }
@@ -215,6 +235,11 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
   val newBackend = !backends.has(b.id)
   if(newBackend) backends.put(b.id, b.capture(lun))
   val backendState = backends.getJSONObject(b.id)
+  if(settings.usbCompatibility && settings.autoUsb && b.id.startsWith("configfs:") && !backendState.optBoolean("compatibility")) {
+   val props = JSONObject()
+   for(name in listOf("sys.usb.config", "sys.usb.configfs", "sys.usb.state")) props.put(name, io.shell.run("getprop $name"))
+   backendState.put("usbProperties", props).put("compatibility", true)
+  }
   val backendBefore = JSONObject(backendState.toString())
   val activeUdc = if(b.id.startsWith("configfs:")) io.read("${b.id.removePrefix("configfs:")}/UDC") else ""
   save(state)
@@ -228,7 +253,7 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
    io.write("${lun.path}/file", path)
    check(backingFile(io.read("${lun.path}/file")) == path) { "Kernel did not confirm image" }
    if(settings.autoUsb) { b.activate(lun, "mass_storage", backendState); save(state) }
-   sessions.getJSONObject(lun.path).put("image", path); save(state)
+   sessions.getJSONObject(lun.path).put("image", path).put("activeRo", mode.ro).put("activeCdrom", mode.cd); save(state)
    }
   } catch(e: Exception) {
    // Persist attempted links before rollback. Never discard a journal when restoration fails.
@@ -242,6 +267,7 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
      val links = backendState.getJSONObject("links")
      for(link in links.keys()) if(!oldLinks.has(link)) added.put(link, links.getString(link))
      delta.put("links", added).put("hiddenLinks", JSONObject()).put("descriptors", JSONObject()).put("otherControllers", JSONObject()).put("boundByUs", false)
+     delta.remove("usbProperties"); delta.put("compatibility", false)
      delta.put("udc", activeUdc)
      b.restore(delta); backends.put(b.id, backendBefore)
     }
@@ -250,6 +276,34 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
    else e.addSuppressed(rollback.exceptionOrNull()!!)
    throw e
   }
+ } }
+ suspend fun maintainCompatibility(): CompatibilityCheck = withContext(Dispatchers.IO) { mutex.withLock {
+  val state = load(); val sessions = state.optJSONObject("luns") ?: return@withLock CompatibilityCheck.NO_SESSIONS
+  if(sessions.length() == 0) return@withLock CompatibilityCheck.NO_SESSIONS
+  require(state.getString("boot") == io.read("/proc/sys/kernel/random/boot_id")) { "USB journal belongs to previous boot" }
+  val backends = state.getJSONObject("backends")
+  var repaired = false
+  for(id in backends.keys()) {
+   val snapshot = backends.getJSONObject(id)
+   if(!id.startsWith("configfs:") || !snapshot.optBoolean("compatibility")) continue
+   val luns = sessions.keys().asSequence().filter { sessions.getJSONObject(it).getString("backend") == id }.map { path ->
+    val session = sessions.getJSONObject(path); val expected = session.getString("image")
+    val current = backingFile(io.read("$path/file"))
+    require(current.isBlank() || current == expected) { "USB image changed by another process" }
+    if(current.isBlank()) {
+     unbound(path) {
+      if(session.has("activeRo") && io.exists("$path/ro")) io.write("$path/ro", if(session.getBoolean("activeRo")) "1" else "0")
+      if(session.has("activeCdrom") && io.exists("$path/cdrom")) io.write("$path/cdrom", if(session.getBoolean("activeCdrom")) "1" else "0")
+      io.write("$path/file", expected)
+     }
+     repaired = true
+    }
+    Lun(path, expected, true, false, false, false)
+   }.toList()
+   if(luns.isNotEmpty() && ConfigFsBackend(io, id.removePrefix("configfs:")) { save(state) }.maintain(luns, snapshot)) repaired = true
+  }
+  if(repaired) { save(state); _changes.tryEmit(inspectNow()) }
+  if(repaired) CompatibilityCheck.REPAIRED else CompatibilityCheck.HEALTHY
  } }
  suspend fun eject(lun: Lun) = withContext(Dispatchers.IO) { mutex.withLock { val state = load(); restoreOne(state, lun.path); if(state.optJSONObject("luns")?.length() == 0) file.delete() } }
  private fun restoreOne(state: JSONObject, path: String) {

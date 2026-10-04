@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://github.com/D4n13l3k00/USBDroid/actions/workflows/check.yml"><img src="https://github.com/D4n13l3k00/USBDroid/actions/workflows/check.yml/badge.svg" alt="CI: Build and check"></a>
-  <a href="https://github.com/D4n13l3k00/USBDroid/releases"><img src="https://img.shields.io/badge/version-v1.0.0-blue" alt="Version v1.0.0"></a>
+  <a href="https://github.com/D4n13l3k00/USBDroid/releases"><img src="https://img.shields.io/badge/version-v1.1.0-blue" alt="Version v1.1.0"></a>
   <a href="https://github.com/D4n13l3k00/USBDroid/releases"><img src="https://img.shields.io/github/downloads/D4n13l3k00/USBDroid/total" alt="Release downloads"></a>
   <img src="https://img.shields.io/badge/Android-8%2B-3DDC84?logo=android&logoColor=white" alt="Android 8+">
   <img src="https://img.shields.io/badge/root-required-orange" alt="Root required">
