@@ -11,6 +11,8 @@ class USBDroidApplication : Application() {
  val database by lazy { AppDatabase.create(this) }
  val settings by lazy { SettingsStore(this) }
  val usb by lazy { UsbController(this) }
+ val imageAccess by lazy { dev.usbdroid.files.ImageAccess(this, usb) }
+ val folderUsb by lazy { dev.usbdroid.files.FolderUsb(this, usb, imageAccess) }
  val library by lazy { Library(this, database.dao(), usb) }
  override fun onCreate() { super.onCreate(); scope.launch { library.initialize(); library.scan() }; scope.launch { dev.usbdroid.update.UpdateChecks.check(this@USBDroidApplication) } }
 }

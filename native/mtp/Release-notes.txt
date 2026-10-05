@@ -1,0 +1,311 @@
+=================================================
+* uMTP Responder
+* Lightweight USB Media Transfer Protocol (MTP)
+* responder
+*
+* Copyright (c) 2018 - 2025 Viveris Technologies
+*
+* https://github.com/viveris/uMTP-Responder
+*
+* Release notes
+=================================================
+
+Noteworthy changes in release v1.8.1 (2025-Oct-29)
+=================================================
+
+* Command line argument handling reworked
+
+    Make it possible to specify multiple -cmd: parameters at once, and
+    to specify them when starting umtprd, e.g. instead of doing
+
+        umtrpd &
+        umtprd '-cmd:addstorage:/home Home rw'
+        umtprd '-cmd:addstorage:/data Data ro'
+
+    you can now do:
+
+        umtprd '-cmd:addstorage:/home Home rw' '-cmd:addstorage:/data Data ro'
+
+    Also make it so the order of parameters doesn't matter, i.e. specifying
+    "-conf" before "-cmd:" will work as one might expect.
+
+* Switch to POSIX message queue
+
+    Simplify the code by switching to a POSIX message queue.
+
+* Fix default permissions and umask handling
+
+    On linux files are usually created with permissions set to 666+umask,
+    and folders with 777+umask.
+
+    The previous codebase used to create files with 600 and folders with 700
+    *unless* a umask override was set in the configuration, then both
+    files and folders would end up with 777+umask.
+
+    This new version addresses this by setting the umask override on process
+    level; Creating files with permissions set to 666 and folders set to
+    777 - with either the overridden or the system default umask applied.
+
+    Please see in umtprd.conf for the umask configuration details.
+
+* Default USB entries path changed.
+
+    Default USB entries path changed from "/dev/ffs-umtp/epx" to "/dev/ffs-mtp/epx"
+
+    The built-in default config used /dev/ffs-umtp/ as the path to the endpoints,
+    whereas both the sample umtprd.conf file and the umtprd-ffs.sh file used /dev/ffs-mtp/.
+    Change the built-in default config to also use /dev/ffs-mtp, so that
+    the startup script can be used out of the box without having to put
+    the config file in /etc.
+
+* Cancel wait time between threads increased to 2.5s
+
+    Fix some cancellation issues on some machines/targets
+
+* Fix dangling symlinks handling
+
+    Dangling symlinks don't stop the file listing anymore.
+
+* New configuration option : "sync_when_close"
+
+    Set this option to 0x1 to request all file data to be flushed from the RAM buffer to the
+    internal storage after transfer is completed, this prevents data loss in the case where
+    user un-plugged a non-battery-powered device too soon when there are still buffered data
+    stayed in the RAM
+
+* MTP_REQ_CANCEL fix - Fix video playback on Windows 10
+
+    Blocking read removed.
+
+    Doing a blocking read (even with count=0) when handling a cancel request
+    from the host ends up blocking both the read in the request handler as
+    well as a write in the thread that's being cancelled, blocking both threads
+    indefinitely.
+
+* USB : Fix max packet size handing
+
+    The wMaxPacketSize is defined by the USB spec: FS/HS: 512 bytes, SS: 1024 bytes
+
+    Since the SS require FS/HS descriptors we can't just use a single value
+    here. Drop the config value usage and set it according the spec instead.
+
+* USB : Fix SuperSpeed companion params
+
+    The SuperSpeed companion descriptor was not set to zero which can lead
+    into bogus params send to the host. Also set bMaxBurst to zero to be
+    compatible with more USB3.0 controller HW out-of-the box.
+
+* Fix >=4GiB files transfer support on Windows systems.
+
+* Output logs optimized/reduced.
+
+* Optimization : fs_handles_db enhanced with hash-table for faster file lookup.
+
+* Optimization : sendobject: avoid multiple open-write-close operations.
+
+* Configuration file : option to set the MTP_Extensions string added.
+
+* Cancellation logic changed/fixed.
+
+Noteworthy changes in release v1.6.8 (2024-Jul-8)
+=================================================
+
+* Fix the GetDeviceInfo operation : It can be used without sending an OpenSession command
+  according to the MTP specification.
+
+* Unicode string functions fixed to work on pre ARMv7 CPUs (Short values unaligned accesses fixed).
+
+* Systemd support : Can now tell Systemd that uMTP-Responder is ready (SYSTEMD_NOTIFY build option).
+
+* Code fixes and improvements.
+
+Noteworthy changes in release v1.6.2 (2021-Dec-26)
+=================================================
+
+* Storage : Global and per storage UID/GID override options :
+
+    * Global and per storage UID/GID can be specified
+      in the configuration file.
+
+* Code fixes / improvements :
+
+    * Message queue (-cmd: operations) possible issue fixed.
+    * More checks added during the MTP operations.
+
+Noteworthy changes in release v1.5.1 (2021-Dec-6)
+=================================================
+
+* Storage : new flags and modes :
+
+    * "locked" flag support.
+
+    * "removable" flag support.
+
+* New dynamic/runtime commands (umtprd -cmd:COMMAND) :
+
+    * "lock"/"unlock" commands to dynamically lock/unlock lockable storage.
+
+        Examples:
+
+        # unlock all locked storage (set with the 'locked' option in the configuration file) :
+
+        umtprd -cmd:unlock
+
+        # lock all lockable storage (set with the 'locked' option in the configuration file) :
+
+        umtprd -cmd:lock
+
+    * "addstorage"/"rmstorage" commands to dynamically add/remove storage.
+
+        Examples:
+
+        umtprd '-cmd:addstorage:/tmp Tmp rw'
+        umtprd '-cmd:rmstorage:Tmp'
+
+        Use double-quotes when arguments have spaces in them:
+
+        umtprd '-cmd:addstorage:/path "My Path" rw,removable'
+        umtprd '-cmd:rmstorage:"My Path"'
+
+* Added umask configuration entry and fix permissions on send objects.
+
+* USB 3.0 SuperSpeed support.
+
+* Supports files rename at the MTP device side.
+
+* New "firmware_version" configuration field : set the MTP device info value.
+
+* Many fixes and improvements :
+
+    * Fix inotify for root folders when using multiple storage.
+
+    * Add guard to avoid storage from being added twice.
+
+    * Update the file size information to the dataset when modifying the file content.
+
+    * Check that fs handles db is valid before using it to get entries.
+
+    * Security fix : Fix the invalid ".." setObjectPropValue access trick.
+
+    * Fix deadlock when SendObject / GetObjectHandles fail.
+
+    * Fix permissions on newly created folders.
+
+    * Configuration file : realign user usb buffers size.
+
+    * Internal : Remove redundant code and possible double closedir issue.
+      (Fix segmentation fault with uClibc).
+
+    * Reduce the default max usb read/write buffer size to 8KB.
+      (This is required by some SoCs, e.g. the iMX series)
+
+
+    Many thanks to all the contributors !
+
+Noteworthy changes in release v1.3.6 (2020-Apr-3)
+=================================================
+
+* MTP Storage mount / unmount support (-cmd:mount:[store name] / -cmd:unmount:[store name] / ).
+
+* Config file :
+    * "storage" operation : new "notmounted" option.
+    * New usb_max_rd_buffer_size option (iMX6 issue workaround).
+    * New usb_max_wr_buffer_size option (iMX6 issue workaround).
+    * New read_buffer_cache_size option (iMX6 issue workaround).
+
+* Config file path can be changed in the command line (-conf:[Config file path]).
+
+* Async/inotify event : Send file size changes.
+
+* Fix : gadgetfs -> Handle unexpected disconnection while transferring a file.
+
+* Fix : Shared multi-drives inotify events.
+
+* Code fixes / improvements :
+    * MTP operations : Better errors handling.
+    * Code refactoring (MTP operations code separated).
+
+Noteworthy changes in release v1.0.0 (2019-10-7)
+=================================================
+
+* Major update ! : Now support all file operations !
+
+* Config file : storage "rw"/"ro" parameter added to write protect a drive.
+
+* Performance : Read and write throughput increased (~ 4x speedup).
+
+* Fix >2GB files listing.
+
+* Fix >2GB files access support on 32 bits systems.
+
+* File read/write transfer cancel operation supported.
+
+* Drives and objects properties support.
+
+* New supported commands :
+
+    * MTP_OPERATION_GET_PARTIAL_OBJECT_64
+    * MTP_OPERATION_SEND_PARTIAL_OBJECT
+    * MTP_OPERATION_BEGIN_EDIT_OBJECT
+    * MTP_OPERATION_END_EDIT_OBJECT
+    * MTP_OPERATION_TRUNCATE_OBJECT
+    * MTP_REQ_CANCEL
+    * MTP_REQ_RESET
+    * MTP_REQ_GET_DEVICE_STATUS
+    * MTP_OPERATION_GET_DEVICE_PROP_DESC
+    * MTP_OPERATION_GET_DEVICE_PROP_VALUE
+    * MTP_OPERATION_GET_OBJECT_REFERENCES
+    * MTP_OPERATION_GET_OBJECT_PROP_LIST
+    * MTP_OPERATION_GET_OBJECT_PROP_VALUE
+    * MTP_OPERATION_SET_OBJECT_PROP_VALUE
+
+* Many others fixes and improvements !
+
+Noteworthy changes in release v0.10.1 (2019-7-17)
+=================================================
+
+* True Unicode support.
+
+* Files/Folders renaming support.
+
+* Fixes and improvements.
+
+Noteworthy changes in release v0.9.7 (2019-1-10)
+=================================================
+
+* MTP event support added :
+
+    * The MTP initiator is now notified when files/folders are removed or added from the responder.
+
+* Various debug messages fixes and improvements.
+
+Noteworthy changes in release v0.9.2 (2018-12-5)
+=================================================
+
+* Generic FunctionFS/libcomposite support added !
+
+* New configuration option : show/hide hidden files option.
+
+* It now follows the symbolic links.
+
+Noteworthy changes in release v0.8.6 (2018-6-30)
+=================================================
+
+* Daemon mode :
+
+    * New "loop_on_disconnect" config file option.
+
+* Bug fixes / Improvements :
+
+    * Windows host : Non-empty folder deletion issue fixed.
+
+    * Severals memory leaks in daemon mode fixed.
+
+    * GadgetFS init/deinit reworked.
+
+Noteworthy changes in release v0.8.1 (2018-5-9)
+=================================================
+
+* Initial release.
+
+    Tested on Raspberry Pi Zero and Atmel Sama5D2 Xplained boards.

@@ -21,11 +21,11 @@ internal val LocalPopupVisible = staticCompositionLocalOf { true }
  LaunchedEffect(visible) { shown = visible }
  val entrance by animateFloatAsState(if(shown) 1f else 0f, tween(180), label = "popup-entrance")
  Dialog(onDismissRequest, DialogProperties(usePlatformDefaultWidth = false)) {
-  Surface(Modifier.padding(20.dp).widthIn(max = 480.dp).fillMaxWidth().heightIn(max = 680.dp).graphicsLayer { alpha = entrance; scaleX = .94f + .06f * entrance; scaleY = scaleX }, shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp)) {
+  Surface(Modifier.padding(20.dp).widthIn(max = 480.dp).fillMaxWidth().heightIn(max = 680.dp).graphicsLayer { alpha = entrance; scaleX = .94f + .06f * entrance; scaleY = scaleX }, shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
    Column {
     Column(Modifier.fillMaxWidth().padding(24.dp)) { ProvideTextStyle(MaterialTheme.typography.titleLarge, title) }
     progress()
-    Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 12.dp)) { text() }
+    Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) { ProvideTextStyle(MaterialTheme.typography.bodyMedium) { text() } }
     Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.End) { dismissButton(); Spacer(Modifier.width(8.dp)); confirmButton() }
    }
   }

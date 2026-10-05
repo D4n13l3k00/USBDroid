@@ -5,6 +5,9 @@ import org.json.JSONObject
 
 fun operationKey(kind: String, args: JSONObject): String = when(kind) {
  "CREATE" -> "create"
+ "FILE_TRANSFER" -> "image-file:${args.optString("mount")}"
+ "FOLDER_COPYBACK" -> "folder-copyback:${args.optString("image")}"
+ "FOLDER_IMAGE" -> "folder-image"
  "DOWNLOAD" -> "download:${args.optString("url")}"
  "IMPORT" -> "import:${args.optString("uri")}"
  else -> "${kind.lowercase()}:${args.optString("image")}:${if(kind == "CHECKSUM") args.optString("algorithm") else ""}"

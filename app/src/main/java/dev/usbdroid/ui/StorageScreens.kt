@@ -35,8 +35,8 @@ import dev.usbdroid.data.*
       Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
        Icon(if(storage.kind == "ROOT") Icons.Rounded.AdminPanelSettings else Icons.Rounded.Folder, null, tint = MaterialTheme.colorScheme.primary)
        Column(Modifier.weight(1f)) {
-        Text(if(storage.id == "default") stringResource(R.string.storage_app) else storage.title, style = MaterialTheme.typography.titleMedium)
-        Text(stringResource(when { storage.primary -> R.string.storage_primary; storage.kind == "ROOT" -> R.string.storage_root; else -> R.string.storage_saf }), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        Text(if(storage.id == "default") stringResource(R.string.storage_app) else storage.title, style = MaterialTheme.typography.bodyLarge)
+        Text(stringResource(when { storage.primary -> R.string.storage_primary; storage.kind == "ROOT" -> R.string.storage_root; else -> R.string.storage_saf }), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
        }
        if(!storage.primary && storage.id != "default") IconButton({ removing = storage }) { Icon(Icons.Rounded.Close, stringResource(R.string.ui_22)) }
       }
@@ -49,7 +49,7 @@ import dev.usbdroid.data.*
    Text(stringResource(R.string.storage_add_title), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
    FilledTonalButton(selectTree, Modifier.fillMaxWidth(), enabled = !state.working("add-storage")) { Icon(Icons.Rounded.CreateNewFolder, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.ui_23)) }
    OutlinedButton({ rootExpanded = !rootExpanded }, Modifier.fillMaxWidth()) { Icon(Icons.Rounded.AdminPanelSettings, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.storage_root_expand)); Spacer(Modifier.weight(1f)); Icon(if(rootExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, null) }
-   AnimatedVisibility(rootExpanded, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+   AnimatedVisibility(rootExpanded, enter = cardExpand, exit = cardCollapse) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
      OutlinedTextField(rootPath, { rootPath = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.ui_24)) }, singleLine = true, enabled = !state.working("add-storage"))
      BusyButton(stringResource(R.string.ui_25), state.working("add-storage"), { model.addRootStorage(rootPath.trim()) }, enabled = rootPath.startsWith("/"), modifier = Modifier.fillMaxWidth())
@@ -79,7 +79,7 @@ import dev.usbdroid.data.*
      Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
       Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
        Icon(Icons.Rounded.CloudDownload, null, tint = MaterialTheme.colorScheme.primary)
-       Text(repo.title, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+       Text(repo.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
        Switch(repo.enabled, { model.repository(repo.copy(enabled = it)) }, enabled = !state.working("repository:${repo.id}"))
       }
       Text(repo.url, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)

@@ -1,6 +1,7 @@
 package dev.usbdroid.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -24,7 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable fun CreateImageScreen(storage: List<StorageLocation>, back: () -> Unit, create: (String, Long, String, Boolean, String?) -> Unit, modifier: Modifier = Modifier, busy: Boolean = false, progress: @Composable () -> Unit = {}) {
  var name by rememberSaveable { mutableStateOf("") }; var quantity by rememberSaveable { mutableStateOf("128") }
  var gib by rememberSaveable { mutableStateOf(false) }; var filesystem by rememberSaveable { mutableStateOf("FAT") }; var allocate by rememberSaveable { mutableStateOf(false) }
@@ -40,9 +41,9 @@ import java.io.File
  val requiredSpace = if(allocate) (mib ?: 0) * 1048576 else format.minimumWorkingSpace
  val enoughSpace = free >= requiredSpace
  val selected = storage.find { it.id == destination } ?: storage.firstOrNull { it.primary } ?: storage.firstOrNull()
- if(menu) {
+ RetainedPopup(menu.takeIf { it }) {
   ImagePopup({ menu = false }, { Text(stringResource(R.string.create_destination)) }, {
-   storage.forEach { location -> ListItem(colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(6.dp)), headlineContent = { Text(location.title) }, supportingContent = { Text(location.location) }, leadingContent = { RadioButton(selected?.id == location.id, { destination = location.id; menu = false }, enabled = !busy) }) }
+   storage.forEach { location -> ListItem(colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh), headlineContent = { Text(location.title) }, supportingContent = { Text(location.location) }, leadingContent = { RadioButton(selected?.id == location.id, null, enabled = !busy) }, modifier = Modifier.clickable(enabled = !busy) { destination = location.id; menu = false }) }
   }, { TextButton(onClick = { menu = false }) { Text(stringResource(R.string.ui_67)) } })
  }
  BackHandler(onBack = back)
@@ -57,7 +58,7 @@ import java.io.File
     HorizontalDivider()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
      Text(stringResource(R.string.filesystem_label), style = MaterialTheme.typography.titleMedium)
-     ImageFilesystem.entries.chunked(3).forEach { formats -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { formats.forEach { item -> FilterChip(filesystem == item.name, { filesystem = item.name }, enabled = !busy, label = { Text(if(item == ImageFilesystem.NONE) stringResource(R.string.filesystem_empty) else item.label) }) } } }
+     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { ImageFilesystem.entries.forEach { item -> FilterChip(filesystem == item.name, { filesystem = item.name }, enabled = !busy, label = { Text(if(item == ImageFilesystem.NONE) stringResource(R.string.filesystem_empty) else item.label) }) } }
     }
     Text(stringResource(when(format) { ImageFilesystem.NONE -> R.string.format_none_hint; ImageFilesystem.FAT -> R.string.format_fat_hint; ImageFilesystem.FAT32 -> R.string.format_fat32_hint; ImageFilesystem.EXFAT -> R.string.format_exfat_hint; ImageFilesystem.EXT4 -> R.string.format_ext4_hint; ImageFilesystem.NTFS -> R.string.format_ntfs_hint; ImageFilesystem.BTRFS -> R.string.format_btrfs_hint }), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     Toggle(stringResource(R.string.create_allocate), stringResource(R.string.create_allocate_detail), allocate, enabled = !busy) { allocate = it }

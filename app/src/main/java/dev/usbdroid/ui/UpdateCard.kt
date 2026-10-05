@@ -7,6 +7,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -86,7 +87,7 @@ class UpdateViewModel(application: Application): AndroidViewModel(application) {
  val ready = work?.state == WorkInfo.State.SUCCEEDED && (release == null || work.outputData.getString("version") == release?.version) && File(context.filesDir, "updates/update.apk").exists()
  val installError by model.installError.collectAsStateWithLifecycle()
  val install = rememberUpdateInstaller(model)
- Surface(modifier.fillMaxWidth().animateContentSize(), shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerLow) {
+ Surface(modifier.fillMaxWidth().animateContentSize(spring(dampingRatio = 1f, stiffness = 1400f)), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
   Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
    Text(stringResource(R.string.update_title), style = MaterialTheme.typography.titleMedium)
    if(release != null) {
@@ -121,7 +122,7 @@ class UpdateViewModel(application: Application): AndroidViewModel(application) {
  val active = work != null && !work.state.isFinished
  val ready = work?.state == WorkInfo.State.SUCCEEDED && (release == null || work.outputData.getString("version") == release?.version) && File(context.filesDir, "updates/update.apk").exists()
  val install = rememberUpdateInstaller(model)
- AnimatedVisibility(release != null || active || ready) {
+ AnimatedVisibility(release != null || active || ready, enter = cardExpand, exit = cardCollapse) {
   Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth().clickable(onClick = open)) {
    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

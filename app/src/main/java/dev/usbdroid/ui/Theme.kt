@@ -2,6 +2,8 @@ package dev.usbdroid.ui
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -20,5 +22,5 @@ import dev.usbdroid.data.Preferences
  val colors = if(dark && p.amoled) scheme.copy(background = Color.Black, surface = Color.Black, surfaceDim = Color.Black, surfaceContainerLowest = Color.Black, surfaceContainerLow = Color(0xff080808), surfaceContainer = Color(0xff101010), surfaceContainerHigh = Color(0xff181818), surfaceContainerHighest = Color(0xff202020)) else scheme
  val activity = LocalActivity.current; val view = LocalView.current
  SideEffect { if(activity != null && !view.isInEditMode) WindowCompat.getInsetsController(activity.window, view).apply { isAppearanceLightStatusBars = !dark; isAppearanceLightNavigationBars = !dark } }
- MaterialTheme(colorScheme = colors, content = content)
+ MaterialTheme(colorScheme = colors, shapes = Shapes(extraSmall = RoundedCornerShape(12.dp), small = RoundedCornerShape(12.dp), medium = RoundedCornerShape(20.dp), large = RoundedCornerShape(20.dp), extraLarge = RoundedCornerShape(28.dp)), content = content)
 }

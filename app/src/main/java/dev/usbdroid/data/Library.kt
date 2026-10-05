@@ -120,12 +120,14 @@ class Library(val context: Context, val dao: AppDao, private val usb: UsbControl
  suspend fun assertDetached(image: ImageEntry) {
   val status = usb.inspect()
   if(image.physicalPath != null) {
+   usb.assertLocalDetached(image.physicalPath)
    check(status.root) { status.error ?: "Root required to verify USB state" }
    val canonical = RootShell.run("readlink -f ${RootShell.quote(image.physicalPath)}")
    check(status.luns.none { it.file == canonical || it.file == image.physicalPath }) { "Eject the image first" }
   }
  }
  suspend fun delete(image: ImageEntry, file: Boolean) {
+  require(!image.isMtp) { "MTP entries must be removed without deleting the folder" }
   assertDetached(image)
   if(file) {
    if(image.location.startsWith("content:")) check(DocumentFile.fromSingleUri(context, Uri.parse(image.location))?.delete() == true) { "Cannot delete document" }

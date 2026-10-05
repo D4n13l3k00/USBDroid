@@ -57,7 +57,7 @@ import dev.usbdroid.R
      Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
       Column {
        ListItem(modifier = Modifier.clickable { licensesExpanded = !licensesExpanded }.padding(vertical = 4.dp), headlineContent = { Text(stringResource(R.string.about_license)) }, supportingContent = { Text("GPL-3.0-or-later") }, leadingContent = { Icon(Icons.Rounded.Description, null, tint = MaterialTheme.colorScheme.primary) }, trailingContent = { Icon(Icons.Rounded.ExpandMore, null, Modifier.rotate(chevron), tint = MaterialTheme.colorScheme.onSurfaceVariant) }, colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow))
-       AnimatedVisibility(licensesExpanded, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+       AnimatedVisibility(licensesExpanded, enter = cardExpand, exit = cardCollapse) {
         Text(stringResource(R.string.about_licenses_details), Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 20.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
        }
       }

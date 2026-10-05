@@ -1,6 +1,7 @@
 package dev.usbdroid.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material3.*
@@ -22,7 +23,7 @@ import dev.usbdroid.data.Preferences
  fun order(value: Boolean) { save(if(!downloads) p.copy(imageDescending = value) else if(jobs) p.copy(jobDescending = value) else p.copy(downloadDescending = value)) }
  Box {
   IconButton(onClick = { onOpen(); expanded = true }) { Icon(Icons.AutoMirrored.Rounded.Sort, stringResource(R.string.sort_title)) }
-  DropdownMenu(expanded, { expanded = false }, modifier = Modifier.widthIn(min = 240.dp, max = 320.dp), containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
+  DropdownMenu(expanded, { expanded = false }, modifier = Modifier.widthIn(min = 240.dp, max = 320.dp), shape = RoundedCornerShape(20.dp), containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
    if(downloads) Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
     FilterChip(!jobs, { jobs = false }, label = { Text(stringResource(R.string.sort_catalog)) })
     FilterChip(jobs, { jobs = true }, label = { Text(stringResource(R.string.ui_70)) })

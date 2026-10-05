@@ -19,7 +19,7 @@ import dev.usbdroid.usb.UsbStatus
 import java.text.DateFormat
 import java.util.Date
 
-@Composable fun ImageDetailsPanel(image: ImageEntry?, usb: UsbStatus, host: () -> Unit, actions: () -> Unit, busy: Boolean = false, eject: () -> Unit = {}) {
+@Composable fun ImageDetailsPanel(image: ImageEntry?, usb: UsbStatus, host: () -> Unit, actions: () -> Unit, busy: Boolean = false, eject: () -> Unit = {}, localMounted: Boolean = false) {
  Surface(Modifier.width(340.dp).fillMaxHeight(), color = MaterialTheme.colorScheme.surfaceContainerLow) {
   Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
    Icon(Icons.Rounded.Album, null, Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
@@ -32,8 +32,8 @@ import java.util.Date
     Text(stringResource(if(image.isAppFile(androidx.compose.ui.platform.LocalContext.current)) R.string.location_app else R.string.location_external), style = MaterialTheme.typography.labelLarge)
     SelectionContainer { Text(image.displayLocation(), style = MaterialTheme.typography.bodySmall) }
     val connected = usb.luns.any { it.file == image.physicalPath }
-    Text(stringResource(if(connected) R.string.details_hosted else R.string.details_detached), color = MaterialTheme.colorScheme.primary)
-    BusyButton(stringResource(if(connected) R.string.ui_90 else R.string.ui_114), busy, if(connected) eject else host, Modifier.fillMaxWidth())
+    Text(stringResource(if(localMounted) R.string.local_mounted else if(connected) R.string.details_hosted else R.string.details_detached), color = MaterialTheme.colorScheme.primary)
+    BusyButton(stringResource(if(connected) R.string.ui_90 else R.string.ui_114), busy, if(connected) eject else host, Modifier.fillMaxWidth(), enabled = !localMounted)
     OutlinedButton(onClick = actions, Modifier.fillMaxWidth()) { Text(stringResource(R.string.ui_80)) }
    }
   }

@@ -1,0 +1,8 @@
+<resources>
+ <string name="operation_local_mount">Mounting image on phone</string>
+ <string name="operation_local_unmount">Unmounting image from phone</string>
+ <string name="operation_image_file">Working with image files</string>
+ <string name="operation_mtp_connect">Connecting MTP folder</string>
+ <string name="operation_mtp_disconnect">Disconnecting MTP folder</string>
+ <string name="local_directory_empty">This folder is empty</string>
+</resources>

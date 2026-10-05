@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
- <queries><package android:name="com.rifsxd.ksunext"/><package android:name="me.weishu.kernelsu"/><package android:name="com.topjohnwu.magisk"/></queries>
+ <queries><package android:name="com.rifsxd.ksunext"/><package android:name="me.weishu.kernelsu"/><package android:name="com.topjohnwu.magisk"/><package android:name="com.android.documentsui"/><package android:name="com.google.android.documentsui"/></queries>
  <uses-permission android:name="android.permission.INTERNET"/>
  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
  <uses-permission android:name="android.permission.WAKE_LOCK"/>
@@ -9,6 +9,8 @@
  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
  <application android:name=".USBDroidApplication" android:label="USBDroid" android:icon="@drawable/ic_launcher" android:theme="@style/Theme.USBDroid" android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules" android:supportsRtl="true" android:usesCleartextTraffic="true" android:extractNativeLibs="true">
   <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.updates" android:exported="false" android:grantUriPermissions="true"><meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/update_paths"/></provider>
+  <provider android:name=".files.ImageDocumentsProvider" android:authorities="${applicationId}.images" android:exported="true" android:grantUriPermissions="true" android:permission="android.permission.MANAGE_DOCUMENTS"><intent-filter><action android:name="android.content.action.DOCUMENTS_PROVIDER"/></intent-filter></provider>
+  <service android:name=".files.FolderSharingService" android:exported="false" android:foregroundServiceType="specialUse"><property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User initiated MTP folder sharing"/></service>
   <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
   <service android:name=".usb.HostingService" android:exported="false" android:foregroundServiceType="specialUse"><property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Maintain user initiated USB mass storage image hosting and expose eject action"/></service>
   <service android:name="androidx.work.impl.foreground.SystemForegroundService" android:foregroundServiceType="dataSync" xmlns:tools="http://schemas.android.com/tools" tools:node="merge"/>

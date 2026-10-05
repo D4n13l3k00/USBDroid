@@ -39,8 +39,9 @@ fun byteText(bytes: Long): String = when {
  val eta = args?.optLong("_eta", -1) ?: -1
  Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
   if(job.total > 0) LinearProgressIndicator(progress = { (job.progress.toFloat() / job.total).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth()) else LinearProgressIndicator(Modifier.fillMaxWidth())
-  if(job.total > 0) { Text("${(job.progress * 100 / job.total).coerceIn(0, 100)}%", style = MaterialTheme.typography.labelMedium); Text("${byteText(job.progress)} / ${byteText(job.total)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-  if(speed > 0 && job.total > 0 && job.progress < job.total) {
+  if(job.total > 0) { Text("${(job.progress * 100 / job.total).coerceIn(0, 100)}%", style = MaterialTheme.typography.labelMedium); Text(if(job.kind == "FILE_TRANSFER") stringResource(R.string.fm_progress, job.progress, job.total) else "${byteText(job.progress)} / ${byteText(job.total)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+  if(job.kind == "DOWNLOAD" && job.total > job.progress) Text(stringResource(R.string.download_remaining, byteText(job.total - job.progress)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+  if(job.kind != "FILE_TRANSFER" && speed > 0 && job.total > 0 && job.progress < job.total) {
    Text(stringResource(R.string.speed_value, byteText(speed)) + if(eta >= 0) " · " + when { eta >= 3600 -> stringResource(R.string.eta_hours, (eta + 3599) / 3600); eta >= 60 -> stringResource(R.string.eta_minutes, (eta + 59) / 60); else -> stringResource(R.string.eta_seconds, eta) } else "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
   }
  }

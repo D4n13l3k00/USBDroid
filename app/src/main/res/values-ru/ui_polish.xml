@@ -1,0 +1,8 @@
+<resources>
+ <string name="operation_local_mount">Монтирование образа на телефоне</string>
+ <string name="operation_local_unmount">Размонтирование образа на телефоне</string>
+ <string name="operation_image_file">Работа с файлами образа</string>
+ <string name="operation_mtp_connect">Подключение MTP-папки</string>
+ <string name="operation_mtp_disconnect">Отключение MTP-папки</string>
+ <string name="local_directory_empty">Папка пуста</string>
+</resources>

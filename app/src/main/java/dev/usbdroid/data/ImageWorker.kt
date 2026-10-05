@@ -45,7 +45,7 @@ class ImageWorker(context: Context, parameters: WorkerParameters): CoroutineWork
   try {
    setForeground(notification())
    val args = JSONObject(job.args)
-   ImageLocks.use(args.optString("image", job.id)) { execute(args) }
+   if(job.kind == "FOLDER_COPYBACK") execute(args) else ImageLocks.use(args.optString("image", job.id)) { execute(args) }
    job = job.copy(state = "DONE", progress = job.total.takeIf { it > 0 } ?: job.progress); dao.putJob(job)
    library.scan(); Result.success()
   } catch(e: CancellationException) { withContext(NonCancellable) { val current = dao.job(job.id); if(current?.state == "RUNNING" && JSONObject(current.args).optString("_owner") == id.toString()) dao.jobState(job.id, "PAUSED") }; throw e }
@@ -79,10 +79,34 @@ class ImageWorker(context: Context, parameters: WorkerParameters): CoroutineWork
  private suspend fun copy(input: InputStream, output: OutputStream, total: Long) { input.use { source -> output.use { destination -> val buffer = ByteArray(1024 * 1024); var done = 0L; while(true) { ensureActive(); if(isStopped) throw InterruptedException("Stopped"); val n = source.read(buffer); if(n < 0) break; destination.write(buffer, 0, n); done += n; progress(done, total) }; destination.flush(); progress(done, total, true) } } }
  private fun localSource(image: ImageEntry): InputStream = try { library.input(image.location) } catch(e: Exception) { val stage = File(applicationContext.cacheDir, "${job.id}.source"); RootShell.run("cp ${RootShell.quote(image.physicalPath ?: throw e)} ${RootShell.quote(stage.path)}; chmod 644 ${RootShell.quote(stage.path)}", 600); stage.inputStream() }
  private suspend fun execute(a: JSONObject) {
+  if(job.kind == "FILE_TRANSFER") {
+   val paths = a.getJSONArray("paths").let { list -> (0 until list.length()).map { list.getString(it) } }
+   progress(0, paths.size.toLong(), true)
+   app.imageAccess.transfer(a.getString("mount"), paths, a.getString("parent"), a.getBoolean("move")) { done, total -> runBlocking { ensureActive(); if(isStopped) throw CancellationException("Stopped"); progress(done.toLong(), total.toLong(), true) } }
+   job = job.copy(result = a.getString("image")); return
+  }
+  if(job.kind == "FOLDER_COPYBACK") {
+   val image = dao.image(a.getString("image")) ?: error("Image no longer exists")
+   val items = a.getJSONArray("items").let { list -> (0 until list.length()).map { list.getJSONObject(it) }.map { item -> dev.usbdroid.files.CopyBackItem(item.getString("relative"), item.getBoolean("directory"), item.getLong("bytes"), item.getString("imageHash"), if(item.has("targetHash") && !item.isNull("targetHash")) item.getString("targetHash") else null, item.getBoolean("blocked")) } }
+   app.imageAccess.refresh()
+   dev.usbdroid.files.FolderCopyBack(applicationContext).apply(dev.usbdroid.files.CopyBackPlan(image, a.getString("source"), items), a.getBoolean("replace")) { done, total -> ensureActive(); if(isStopped) throw CancellationException("Stopped"); progress(done, total, true) }
+   job = job.copy(result = image.id); return
+  }
+  if(job.kind == "FOLDER_IMAGE") {
+   val entry = dev.usbdroid.files.FolderImage(applicationContext).create(a.getString("source"), job.title, ImageFilesystem.valueOf(a.getString("filesystem")), a.getLong("extraMiB")) { value ->
+    job = job.copy(args = JSONObject(job.args).put("_file", value.file).toString())
+    progress(value.bytes, value.total, true)
+   }
+   job = job.copy(args = JSONObject(job.args).put("image", entry.id).toString())
+   ImageLocks.use(entry.id) { saveHashes(entry, calculateAllHashes(File(entry.location))) }
+   job = job.copy(result = entry.id)
+   return
+  }
   if(job.kind in listOf("CREATE", "DOWNLOAD", "IMPORT", "MOVE", "COPY_HOST")) Library.validateName(a.getString("name"))
   val temp = File(library.directory, ".${job.id}.partial")
   val image = if(a.has("image")) dao.image(a.getString("image")) ?: error("Image no longer exists") else null
-  if(image != null && job.kind != "EXPORT") library.assertDetached(image)
+  require(image?.isMtp != true) { "This operation requires a disk image" }
+  if(image != null) library.assertDetached(image)
   when(job.kind) {
    "DOWNLOAD" -> {
     val client = OkHttpClient.Builder().connectTimeout(20, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).followSslRedirects(false).build()

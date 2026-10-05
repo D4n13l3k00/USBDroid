@@ -30,6 +30,8 @@ import dev.usbdroid.working
  var permanent by rememberSaveable { mutableStateOf(false) }
  var apply by remember { mutableStateOf(false) }
  var renderApply by remember { mutableStateOf(false) }
+ var checkResult by remember { mutableStateOf<String?>(null) }
+ LaunchedEffect(system, mode, compatibility) { checkResult = null }
  val saving = state.working("settings")
  val applying = state.working("usb-mode")
  val enabled = !saving && !applying
@@ -64,6 +66,8 @@ import dev.usbdroid.working
     Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
      ListItem(headlineContent = { Text(stringResource(R.string.usb_compatibility)) }, supportingContent = { Text(stringResource(R.string.usb_compatibility_description)) }, leadingContent = { Icon(Icons.Rounded.Build, null, tint = MaterialTheme.colorScheme.primary) }, trailingContent = { Switch(compatibility, { compatibility = it }, enabled = enabled) }, colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow))
     }
+    BusyButton(stringResource(R.string.usb_check), state.working("usb-check"), { val request = Triple(system, mode, compatibility); model.checkUsb(system, mode) { if(request == Triple(system, mode, compatibility)) checkResult = it } }, Modifier.fillMaxWidth(), enabled = enabled)
+    checkResult?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     Text(stringResource(R.string.usb_manual_apply), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
     Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {

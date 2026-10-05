@@ -1,7 +1,11 @@
 package dev.usbdroid.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -45,22 +49,22 @@ import dev.usbdroid.usb.HostMode
  val nextEnabled = !finishing && !state.working("setup") && !state.usbWorking() && when(step) { 0, 1 -> !state.rootBusy && (step == 0 || state.usb.root); 2 -> state.storage.isNotEmpty(); 4 -> state.usb.luns.isNotEmpty(); 5 -> active; 6 -> p.diskResult in listOf("USB", "CDROM"); else -> true }
  Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.setup_title)) }, navigationIcon = { IconButton(onClick = { model.setup(step = step - 1) }) { Icon(Icons.Rounded.ArrowBack, stringResource(R.string.create_back)) } }) }, bottomBar = {
   Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) { Row(Modifier.navigationBarsPadding().fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-   if(step == 6 || step == 7) TextButton(onClick = { model.setup(step = step + 1, disk = if(step == 6) "NOT_TESTED" else null, boot = if(step == 7) "NOT_TESTED" else null) }) { Text(stringResource(R.string.setup_later)) }
+   if(step == 6 || step == 7) TextButton(enabled = !finishing && !state.working("setup"), onClick = { model.setup(step = step + 1, disk = if(step == 6) "NOT_TESTED" else null, boot = if(step == 7) "NOT_TESTED" else null) }) { Text(stringResource(R.string.setup_later)) }
    BusyButton(stringResource(if(step == 0) R.string.request_root else if(step == 8) R.string.start_app else R.string.setup_next), finishing || state.working("setup") || (step <= 1 && state.rootBusy), { if(step == 8) model.finishSetup(close) else advance() }, enabled = nextEnabled, modifier = Modifier.weight(1f))
   } }
  }) { padding ->
   Box(Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-   Column(Modifier.widthIn(max = 720.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-    OperationProgress(state)
-    if(step > 0) { Text(stringResource(R.string.setup_step, step, 8), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary); LinearProgressIndicator(progress = { step / 8f }, modifier = Modifier.fillMaxWidth()) }
-    Icon(icons[step], null, Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
-    Text(stringResource(titles[step]), style = MaterialTheme.typography.headlineLarge)
-    when(step) {
+   AnimatedContent(step, transitionSpec = { (fadeIn(tween(160)) + slideInHorizontally(tween(180)) { it / 12 }) togetherWith (fadeOut(tween(100)) + slideOutHorizontally(tween(140)) { -it / 12 }) }, label = "setup-page") { shownStep ->
+   Column(Modifier.widthIn(max = 600.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    if(shownStep > 0) SetupStepProgress(shownStep)
+    SetupHero(shownStep, icons[shownStep], busy = (shownStep in 1..4 && state.rootBusy) || (shownStep == 5 && (working || state.usbWorking())) || (shownStep == 8 && finishing), complete = (shownStep == 1 && state.usb.root) || (shownStep == 5 && active) || (shownStep == 6 && p.diskResult in listOf("USB", "CDROM")))
+    Text(stringResource(titles[shownStep]), Modifier.fillMaxWidth(), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+    when(shownStep) {
      0 -> { Text(stringResource(R.string.setup_welcome), style = MaterialTheme.typography.bodyLarge); Text(stringResource(R.string.setup_steps), color = MaterialTheme.colorScheme.onSurfaceVariant) }
      1 -> { Text(stringResource(R.string.root_body)); if(state.usb.root) StatusLine(stringResource(R.string.root_granted)); BusyButton(stringResource(R.string.retry_root), state.rootBusy, model::inspect) }
      2 -> {
       Text(stringResource(R.string.setup_storage_body))
-      state.storage.forEach { storage -> ListItem(headlineContent = { Text(storage.title) }, supportingContent = { Text(storage.location) }, leadingContent = { RadioButton(storage.primary, { model.primaryStorage(storage) }) }, colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) }
+      state.storage.forEach { storage -> ListItem(headlineContent = { Text(storage.title) }, supportingContent = { Text(storage.location) }, leadingContent = { RadioButton(storage.primary, null) }, colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), modifier = Modifier.clickable(enabled = !state.working("storage-primary")) { model.primaryStorage(storage) }) }
       OutlinedButton(onClick = directory, Modifier.fillMaxWidth()) { Icon(Icons.Rounded.FolderOpen, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.choose_directory)) }
       OutlinedButton(onClick = notifications, Modifier.fillMaxWidth(), enabled = !notificationsAllowed) { Icon(if(notificationsAllowed) Icons.Rounded.CheckCircle else Icons.Rounded.Notifications, null); Spacer(Modifier.width(8.dp)); Text(stringResource(if(notificationsAllowed) R.string.notifications_allowed else R.string.allow_notifications)) }
       Text(stringResource(R.string.permissions_optional), style = MaterialTheme.typography.bodySmall)
@@ -68,7 +72,6 @@ import dev.usbdroid.usb.HostMode
      3 -> { Text(stringResource(R.string.setup_cable_body)); Text(state.usb.cable.ifBlank { stringResource(R.string.setup_cable_unknown) }); BusyTextButton(stringResource(R.string.setup_refresh), state.rootBusy, model::inspect) }
      4 -> {
       Text(stringResource(R.string.setup_system_body))
-      if(state.rootBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
       val configfs = state.usb.luns.any { it.path.contains("/functions/") }
       val legacy = state.usb.luns.any { !it.path.contains("/functions/") }
       val systems = buildList { add("auto" to stringResource(R.string.setup_auto)); if(configfs) add("configfs" to "ConfigFS"); if(legacy) { add("setprop" to "Android setprop"); add("functions" to "Android functions"); add("samsung" to "Samsung UMS") } }
@@ -111,6 +114,7 @@ import dev.usbdroid.usb.HostMode
      }
     }
     if(state.message != null) { Text(state.message, color = MaterialTheme.colorScheme.error); TextButton(onClick = model::clearMessage) { Text(stringResource(R.string.setup_dismiss_error)) } }
+   }
    }
   }
  }

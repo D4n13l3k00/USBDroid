@@ -53,6 +53,15 @@ internal fun operationLabel(key: String): Int = when(key.substringBefore(':')) {
  "create", "setup-create" -> R.string.operation_create
  "settings", "setup", "repository", "storage", "storage-primary", "add-storage" -> R.string.operation_save
  "setup-finish", "usb-mode" -> R.string.operation_usb
+ "folder-estimate" -> R.string.folder_calculate
+ "folder-preview" -> R.string.folder_copyback
+ "folder-copyback" -> R.string.folder_copyback
+ "usb-check" -> R.string.usb_check
+ "local-mount" -> R.string.operation_local_mount
+ "local-unmount" -> R.string.operation_local_unmount
+ "image-file" -> R.string.operation_image_file
+ "folder-mtp" -> R.string.operation_mtp_connect
+ "folder-mtp-stop" -> R.string.operation_mtp_disconnect
  "report" -> R.string.operation_report
  "remove", "bulk-hide", "bulk-delete" -> R.string.operation_remove
  else -> R.string.operation_in_progress
@@ -64,7 +73,7 @@ internal fun operationLabel(key: String): Int = when(key.substringBefore(':')) {
  val entrance by animateFloatAsState(if(shown) 1f else 0f, tween(180), label = "screen-entrance")
  BackHandler(onBack = onDismissRequest)
  Scaffold(Modifier.fillMaxSize(), topBar = { TopAppBar(title = title, navigationIcon = { IconButton(onDismissRequest) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.create_back)) } }) }, bottomBar = {
-  Surface(color = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)) { Row(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(16.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) { dismissButton(); Spacer(Modifier.width(12.dp)); confirmButton() } }
+  Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) { Row(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(16.dp), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) { dismissButton(); Spacer(Modifier.width(12.dp)); confirmButton() } }
  }) { padding ->
   Column(Modifier.padding(padding).fillMaxSize().graphicsLayer { alpha = entrance; translationY = (1f - entrance) * 24.dp.toPx() }) {
    progress()

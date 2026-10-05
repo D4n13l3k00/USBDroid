@@ -6,7 +6,7 @@ android {
  namespace = "dev.usbdroid"
  compileSdk = 35
  ndkVersion = "28.2.13676358"
- defaultConfig { applicationId = "dev.usbdroid"; minSdk = 26; targetSdk = 35; versionCode = 2; versionName = "1.1.0"; ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") } }
+ defaultConfig { applicationId = "dev.usbdroid"; minSdk = 26; targetSdk = 35; versionCode = 13; versionName = "1.2.0"; ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") } }
  defaultConfig { testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
  kotlinOptions { jvmTarget = "17" }
@@ -65,6 +65,7 @@ val prepareNative by tasks.registering {
  val bootOutput = layout.projectDirectory.dir("src/main/assets/testboot").asFile
  inputs.dir(source)
  inputs.dir(bootSource)
+ inputs.dir(rootProject.file("native/mtp"))
  outputs.dir(nativeOutput)
  outputs.dir(bootOutput)
  doLast {
@@ -100,6 +101,10 @@ val prepareNative by tasks.registering {
   generated.writeText("#include \"isohybrid.h\"\nunsigned char isohdpfx[][MBRSIZE] = {" + arrays.joinToString(",") + "};\n")
   mapOf("arm64-v8a" to "aarch64-linux-android26", "armeabi-v7a" to "armv7a-linux-androideabi26", "x86_64" to "x86_64-linux-android26").forEach { (abi, target) ->
    val output = File(nativeOutput, abi).apply { mkdirs() }
+   val mtpSource = rootProject.file("native/mtp")
+   val mtpFiles = File(mtpSource, "src").walkTopDown().filter { it.extension == "c" && it.name != "msgqueue.c" }.map { it.path }.toList() + File(mtpSource, "android/ipc.c").path
+   run(*(listOf(tool("clang"), "--target=$target", "--sysroot=${File(toolchain, "sysroot")}", "-O2", "-static", "-Wl,-z,max-page-size=16384", "-D_GNU_SOURCE", "-D_FILE_OFFSET_BITS=64", "-I", File(mtpSource, "android").path, "-I", File(mtpSource, "inc").path) + mtpFiles + listOf("-o", File(output, "libumtprd.so").path)).toTypedArray())
+
    run(tool("clang"), "--target=$target", "--sysroot=${File(toolchain, "sysroot")}", "-O2", "-fPIE", "-pie", "-D_GNU_SOURCE", "-Wl,-z,max-page-size=16384", "-I", source.path, File(source, "isohybrid.c").path, generated.path, "-o", File(output, "libisohybrid.so").path)
   }
   bootOutput.mkdirs()

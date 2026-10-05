@@ -47,7 +47,7 @@ import org.json.JSONObject
 @Composable fun DeleteImagesConfirmation(images: List<ImageEntry>, busy: Boolean, close: () -> Unit, confirm: () -> Unit) {
  val context = androidx.compose.ui.platform.LocalContext.current
  ImagePopup({ if(!busy) close() }, { Text(stringResource(R.string.selection_delete)) }, {
-  Column(Modifier.padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+  Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
    Text(stringResource(R.string.delete_files_confirmation, images.size, sizeText(images.sumOf { it.size })))
    if(images.any { !it.isAppFile(context) }) Text(stringResource(R.string.delete_external_warning), color = MaterialTheme.colorScheme.error)
    images.forEach { image -> ImageConfirmationDetails(image) }
@@ -58,7 +58,7 @@ import org.json.JSONObject
 @Composable fun HideImagesConfirmation(images: List<ImageEntry>, busy: Boolean, close: () -> Unit, confirm: () -> Unit) {
  val context = androidx.compose.ui.platform.LocalContext.current
  ImagePopup({ if(!busy) close() }, { Text(stringResource(R.string.selection_hide)) }, {
-  Column(Modifier.padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+  Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
    Text(stringResource(if(images.any { it.isAppFile(context) }) R.string.hide_app_confirmation else R.string.hide_external_confirmation))
    images.forEach { ImageConfirmationDetails(it) }
   }

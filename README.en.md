@@ -21,6 +21,7 @@ An open-source alternative to DriveDroid for Android. Connect IMG and ISO images
 - Import and export disk images. Store files in the app folder or use existing files from other locations.
 - Create blank or formatted images: FAT16, FAT32, exFAT, ext4, NTFS and Btrfs. Resize image files and calculate checksums.
 - Download images from catalogs or direct URLs. Built-in isohybrid prepares compatible ISO images for USB boot.
+- Share a selected folder over MTP or as a temporary USB image. Browse and edit image contents on the phone or through SAF-compatible file managers.
 - OTA updates through GitHub Releases.
 
 ## 🎨 Interface

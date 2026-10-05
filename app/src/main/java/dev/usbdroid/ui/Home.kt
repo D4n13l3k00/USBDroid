@@ -120,7 +120,7 @@ import dev.usbdroid.usb.*
    if(wide) NavigationRail(Modifier.fillMaxHeight()) { labels.forEachIndexed { i, label -> NavigationRailItem(page == i, { page = i }, { Icon(icons[i], label) }, label = { Text(label) }) } }
    Scaffold(Modifier.weight(1f), topBar = { TopAppBar(title = { Text(if(page == 0 && selectionMode) stringResource(R.string.selection_count, selectedImages.size) else if(page == 0) "USBDroid" else labels[page]) }, actions = {
     if(page == 0 && selectionMode) {
-     IconButton({ selectedIds = visibleImages.map { it.id } }) { Icon(Icons.Rounded.SelectAll, stringResource(R.string.selection_all)) }
+     IconButton({ selectedIds = visibleImages.filterNot { it.isMtp }.map { it.id } }) { Icon(Icons.Rounded.SelectAll, stringResource(R.string.selection_all)) }
      IconButton({ finishSelection() }) { Icon(Icons.Rounded.Close, stringResource(R.string.selection_clear)) }
     } else {
     if(page == 0) IconButton({ expandedImageId = null; selectionMode = true }) { Icon(Icons.Rounded.Checklist, stringResource(R.string.selection_start)) }
@@ -142,29 +142,34 @@ import dev.usbdroid.usb.*
         item { SearchField(imageQuery, { imageQuery = it }, stringResource(R.string.ui_76)) }
         item { Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
          FilterChip(favoritesOnly, { expandedImageId = null; favoritesOnly = !favoritesOnly }, label = { Text(stringResource(R.string.favorites_only)) }, leadingIcon = { Icon(Icons.Rounded.Star, null, Modifier.size(18.dp)) })
-         Text("${sortLabel(state.preferences.imageSort)} · ${stringResource(if(state.preferences.imageDescending) R.string.sort_descending else R.string.sort_ascending)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+         Text("${sortLabel(state.preferences.imageSort)} · ${stringResource(if(state.preferences.imageDescending) R.string.sort_descending else R.string.sort_ascending)}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } }
         if(selectionMode) item {
          SelectionActions(selectedImages, state, { model.favorite(selectedIds.toSet(), !selectedImages.all { it.id in state.preferences.favorites }) }, { hideSelection = selectedImages.toList(); route = "hide-selected" }, { model.ejectImages(selectedImages) { finishSelection() } }, { deleteSelection = selectedImages.toList(); route = "delete-selected" })
         }
         if(state.images.isEmpty()) item { EmptyView(stringResource(R.string.ui_78), stringResource(R.string.ui_79)) }
         else if(visibleImages.isEmpty()) item { EmptyView(stringResource(if(favoritesOnly && imageQuery.isBlank()) R.string.favorites_empty else R.string.search_empty), stringResource(if(favoritesOnly && imageQuery.isBlank()) R.string.favorites_hint else R.string.search_empty_detail)) }
-        items(sortedImages(visibleImages, state.preferences.imageSort, state.preferences.imageDescending, state.usb.luns.mapNotNull { it.file.takeIf(String::isNotBlank) }.toSet()), key = { it.id }) { entry ->
-         ImageLibraryRow(entry, state, expandedImageId == entry.id, { expanded -> imageId = entry.id; expandedImageId = if(expanded) entry.id else null }, Modifier.animateItem(), { lun, mode, done -> model.host(entry, lun, mode) { if(expandedImageId == entry.id) done() } }, { model.ejectImage(entry) }, { action ->
+        items(sortedImages(visibleImages, state.preferences.imageSort, state.preferences.imageDescending, state.usb.luns.mapNotNull { it.file.takeIf(String::isNotBlank) }.toSet() + listOfNotNull(state.folderShare?.folder)), key = { it.id }) { entry ->
+         if(entry.isMtp) MtpLibraryRow(entry, state, model, expandedImageId == entry.id, { expandedImageId = if(it) entry.id else null }, Modifier.animateItem(placementSpec = null)) { imageId = entry.id; route = "rename" }
+         else ImageLibraryRow(entry, state, expandedImageId == entry.id, { expanded -> imageId = entry.id; expandedImageId = if(expanded) entry.id else null }, Modifier.animateItem(placementSpec = null), { lun, mode, done -> model.host(entry, lun, mode) { if(expandedImageId == entry.id) done() } }, { model.ejectImage(entry) }, { action ->
           expandedImageId = null
           imageId = entry.id
-          when(action) { 12 -> model.favorite(setOf(entry.id), entry.id !in state.preferences.favorites); 0 -> route = "host"; 4 -> route = "hide"; 5 -> route = "delete"; 6 -> route = "rename"; 7 -> route = "resize"; 8 -> route = "move"; 9 -> exporter.launch(entry.title + ".${entry.file.extension.ifBlank { "img" }}"); 10 -> route = "hybrid"; 11 -> model.copyForHost(entry) }
-         }, { algorithm -> model.checksum(entry, algorithm) }, selectionMode = selectionMode, selected = entry.id in selectedIds, select = { selectImage(entry.id) }, favorite = entry.id in state.preferences.favorites)
+          when(action) { 13 -> route = "image-files"; 12 -> model.favorite(setOf(entry.id), entry.id !in state.preferences.favorites); 0 -> route = "host"; 4 -> route = "hide"; 5 -> route = "delete"; 6 -> route = "rename"; 7 -> route = "resize"; 8 -> route = "move"; 9 -> exporter.launch(entry.title + ".${entry.file.extension.ifBlank { "img" }}"); 10 -> route = "hybrid"; 11 -> model.copyForHost(entry) }
+         }, { algorithm -> model.checksum(entry, algorithm) }, selectionMode = selectionMode, selected = entry.id in selectedIds, select = { selectImage(entry.id) }, favorite = entry.id in state.preferences.favorites, model = model)
         }
        }
-       if(wide) ImageDetailsPanel(image, state.usb, { route = "host" }, { route = "actions" }, image?.let { state.imageWorking(it.id) } == true, { image?.let { model.ejectImage(it) } })
+       if(wide && image?.isMtp != true) ImageDetailsPanel(image, state.usb, { route = "host" }, { route = "actions" }, image?.let { state.imageWorking(it.id) } == true, { image?.let { model.ejectImage(it) } }, localMounted = image?.physicalPath?.let { path -> state.localImages.any { it.image == path } } == true)
        }
       }
       1 -> LazyColumn(state = downloadScroll, contentPadding = PaddingValues(bottom = 100.dp)) {
        item { FilledTonalButton(onClick = { route = "url" }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) { Icon(Icons.Rounded.Link, null); Spacer(Modifier.width(8.dp)); Text(stringResource(R.string.ui_14)) } }
        item { SortSummary(state.preferences.downloadSort, state.preferences.downloadDescending) }
        item { Text(stringResource(R.string.ui_82), Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall) }
-       items(sortedJobs(state.jobs.filter { it.kind == "DOWNLOAD" }, state.preferences.jobSort, state.preferences.jobDescending), key = { "job:${it.id}" }) { JobRow(it, model, state) }
+       items(sortedJobs(state.jobs.filter { it.kind == "DOWNLOAD" }, state.preferences.jobSort, state.preferences.jobDescending), key = { "job:${it.id}" }) { JobRow(it, model, state) { id -> finishSelection(); page = 0; imageQuery = ""; favoritesOnly = false; imageId = id; expandedImageId = id
+        val ordered = sortedImages(state.images, state.preferences.imageSort, state.preferences.imageDescending, state.usb.luns.mapNotNull { it.file.takeIf(String::isNotBlank) }.toSet() + listOfNotNull(state.folderShare?.folder))
+        val target = ordered.indexOfFirst { it.id == id } + 2
+        scrollScope.launch { withFrameNanos { }; imageScroll.animateScrollToItem(target.coerceAtLeast(0)) }
+       } }
        item { SearchField(downloadQuery, { downloadQuery = it }, stringResource(R.string.ui_83)) }
        if(state.catalog.isEmpty() && !state.working("catalog")) item { EmptyView(stringResource(R.string.catalog_empty), stringResource(R.string.catalog_empty_detail)) }
        else if(state.catalog.isNotEmpty() && state.catalog.none { "${it.name} ${it.version} ${it.arch}".contains(downloadQuery, true) }) item { EmptyView(stringResource(R.string.search_empty), stringResource(R.string.search_empty_detail)) }
@@ -192,16 +197,31 @@ import dev.usbdroid.usb.*
    else -> ActionScreens(shown, popupImage ?: image, state, model, close, { route = it }, { copy -> directAdd = !copy; route = null; importer.launch(arrayOf("*/*")) }, { tree.launch(null) }, { if(image != null) exporter.launch(image.title + ".${image.file.extension.ifBlank { "img" }}") }, { route = null; page = 1; model.catalog() })
   }
  } }
- Messages(state, model) { kind -> model.clearMessage(); when(kind) { ErrorKind.SPACE, ErrorKind.PERMISSION -> route = "directories"; else -> model.inspect() } }
+ var dismissedRecovery by remember { mutableStateOf(false) }
+ var exportingRecovery by remember { mutableStateOf<InterruptedOperation?>(null) }
+ val recoveryExport = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri -> if(uri != null) exportingRecovery?.let { record -> model.exportInterrupted(record, uri) { exportingRecovery = null; dismissedRecovery = true } } }
+
+ if(!dismissedRecovery) state.interrupted.firstOrNull()?.let { record ->
+  ImagePopup({ if(!state.working("recovery")) dismissedRecovery = true }, { Text(stringResource(R.string.recovery_title)) }, { Text(if(record.journal.startsWith("document-edit-")) stringResource(R.string.recovery_document, record.file) else stringResource(R.string.recovery_body, record.file, record.completed, record.total)) }, {
+   BusyButton(stringResource(if(record.journal.startsWith("document-edit-")) R.string.recovery_restore else R.string.recovery_review), state.working("recovery"), { model.reviewInterrupted(record) {
+    page = 0; imageQuery = ""; favoritesOnly = false; imageId = record.imageId; expandedImageId = record.imageId
+    if(record.journal == "folder-copyback.json") route = "folder" else route = "image-files"
+   } })
+  }, dismissButton = {
+   if(record.journal.startsWith("document-edit-")) TextButton({ exportingRecovery = record; recoveryExport.launch(record.file.substringAfterLast('/')) }, enabled = !state.working("recovery")) { Text(stringResource(R.string.local_export)) }
+   else TextButton({ dismissedRecovery = true }, enabled = !state.working("recovery")) { Text(stringResource(R.string.setup_later)) }
+  })
+ }
+ Messages(state, model) { kind -> model.clearMessage(); when(kind) { ErrorKind.SPACE, ErrorKind.PERMISSION -> route = "directories"; ErrorKind.CONFLICT -> model.refresh(); else -> model.inspect() } }
 }
 
 @Composable private fun SearchField(value: String, update: (String) -> Unit, hint: String) { OutlinedTextField(value, update, Modifier.fillMaxWidth().padding(16.dp), placeholder = { Text(hint) }, leadingIcon = { Icon(Icons.Rounded.Search, null) }, singleLine = true) }
-@Composable private fun SortSummary(sort: String, descending: Boolean) { Text("${sortLabel(sort)} · ${stringResource(if(descending) R.string.sort_descending else R.string.sort_ascending)}", Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+@Composable private fun SortSummary(sort: String, descending: Boolean) { Text("${sortLabel(sort)} · ${stringResource(if(descending) R.string.sort_descending else R.string.sort_ascending)}", Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
 private fun hostModeTextValue(lun: Lun) = if(lun.cdrom) "CD-ROM" else if(lun.readOnly) "USB RO" else "USB RW"
 @Composable fun Messages(state: AppState, model: AppViewModel, recover: ((ErrorKind) -> Unit)? = null) {
  state.duplicateDownload?.let { release -> ImagePopup(model::clearDuplicate, { Text(stringResource(R.string.download_duplicate_title)) }, { Text(stringResource(R.string.download_duplicate_body)) }, { Button({ model.clearDuplicate(); model.download(release, allowDuplicate = true) }) { Text(stringResource(R.string.download_again)) } }, dismissButton = { TextButton(model::clearDuplicate) { Text(stringResource(R.string.ui_10)) } }) }
- state.message?.let { message -> TintedAlertDialog(model::clearMessage, title = { Text(if(state.messageIsError) stringResource(R.string.error_title) else "USBDroid") }, text = {
-  if(state.messageIsError) ErrorExplanation(message, recover = recover ?: { model.clearMessage(); model.inspect() }) else androidx.compose.foundation.text.selection.SelectionContainer { Text(message, Modifier.verticalScroll(rememberScrollState())) }
+ state.message?.let { message -> TintedAlertDialog(model::clearMessage, title = { Text(if(state.messageIsError) stringResource(errorTitleResource(errorKind(message))) else "USBDroid") }, text = {
+  if(state.messageIsError) ErrorExplanation(message, showTitle = false, recover = recover ?: { model.clearMessage(); model.inspect() }) else androidx.compose.foundation.text.selection.SelectionContainer { Text(message, Modifier.verticalScroll(rememberScrollState())) }
  }, confirmButton = { TextButton(model::clearMessage) { Text(stringResource(R.string.ui_67)) } }) }
 }
 
@@ -252,7 +272,9 @@ private fun hostModeTextValue(lun: Lun) = if(lun.cdrom) "CD-ROM" else if(lun.rea
  val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
  val context = LocalContext.current
  when(route) {
-  "add" -> MenuDialog(stringResource(R.string.ui_73), listOf(stringResource(R.string.ui_108), stringResource(R.string.ui_109), stringResource(R.string.ui_110), stringResource(R.string.ui_111), stringResource(R.string.ui_112)), close, busy = listOfNotNull(1.takeIf { state.working("create") }).toSet()) { index -> when(index) { 0 -> import(true); 1 -> choose("create"); 2 -> downloads(); 3 -> import(false); 4 -> choose("path") } }
+  "add" -> MenuDialog(stringResource(R.string.ui_73), listOf(stringResource(R.string.ui_108), stringResource(R.string.ui_109), stringResource(R.string.ui_110), stringResource(R.string.ui_111), stringResource(R.string.ui_112), stringResource(R.string.folder_share)), close, busy = listOfNotNull(1.takeIf { state.working("create") }).toSet()) { index -> when(index) { 0 -> import(true); 1 -> choose("create"); 2 -> downloads(); 3 -> import(false); 4 -> choose("path"); 5 -> choose("folder") } }
+  "folder" -> FolderShareScreen(state, model, close)
+  "image-files" -> ImageBrowserScreen(image, state, model, close)
   "host" -> if(image != null) { if(image.physicalPath == null) ConfirmDialog(stringResource(R.string.ui_113), stringResource(R.string.copy_space, sizeText(image.size)), close, busy = state.imageWorking(image.id)) { model.copyForHost(image) } else HostImageDialog(image, state, close, { lun, mode -> model.host(image, lun, mode, close) }, { model.ejectImage(image) }) }
   "actions" -> if(image != null) {
    val connected = state.usb.luns.any { it.file == image.physicalPath }

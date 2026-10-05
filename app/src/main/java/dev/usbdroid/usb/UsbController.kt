@@ -12,6 +12,12 @@ import java.util.concurrent.TimeUnit
 
 object RootShell {
  fun quote(value: String): String { require(!value.contains('\u0000')); return "'" + value.replace("'", "'\"'\"'") + "'" }
+ // Toybox mountpoint ignores file bind mounts and some directory bind mounts.
+ fun isMounted(path: String): Boolean {
+  val target = path.replace("\\", "\\134").replace(" ", "\\040").replace("\t", "\\011").replace("\n", "\\012")
+  return inMountNamespace("while IFS=' ' read -r mountId mountParent mountDev mountRoot mountPath mountRest; do if [ \"${'$'}mountPath\" = ${quote(target)} ]; then echo yes; break; fi; done < /proc/self/mountinfo; true") == "yes"
+ }
+ fun inMountNamespace(script: String, timeout: Long = 30): String = run("nsenter -t 1 -m -- /system/bin/sh -c ${quote(script)}", timeout)
  fun run(script: String, timeout: Long = 30): String {
   val p = ProcessBuilder("su", "-c", script).redirectErrorStream(true).start()
   val output = StringBuilder(); val reader = Thread { p.inputStream.bufferedReader().useLines { it.forEach { line -> synchronized(output) { if(output.length < 100000) output.append(line).append('\n') } } } }.apply { isDaemon = true; start() }
@@ -157,6 +163,20 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
  constructor(context: Context, shell: Shell = SuShell): this(File(context.filesDir, "usb-state.json"), shell)
  private val io = UsbIo(shell)
  private val mutex = Mutex()
+ suspend fun <T> serialized(block: () -> T): T = withContext(Dispatchers.IO) { mutex.withLock { block() } }
+ private fun assertLocalDetachedNow(path: String) {
+  val journal = File(file.parent, "local-mounts.json")
+  if(journal.exists()) {
+   val mounts = JSONObject(journal.readText())
+   if(mounts.optString("boot") == io.read("/proc/sys/kernel/random/boot_id")) {
+    val entries = mounts.optJSONArray("mounts")
+    if(entries != null) for(i in 0 until entries.length()) require(entries.getJSONObject(i).getString("image") != path) { "Unmount the image on the phone first" }
+   }
+  }
+  val backing = io.shell.run("for p in /sys/block/loop*/loop/backing_file; do [ -f \"${'$'}p\" ] && cat \"${'$'}p\"; done; true")
+  require(backing.lines().none { it == path || "/$it" == path }) { "Image is in use by a loop device" }
+ }
+ suspend fun assertLocalDetached(path: String) = serialized { assertLocalDetachedNow(io.shell.run("readlink -f ${RootShell.quote(path)}")) }
  private fun load(): JSONObject = if(file.exists()) JSONObject(file.readText()) else JSONObject()
  private fun save(state: JSONObject) { val tmp = File(file.parent, "usb-state.tmp"); tmp.writeText(state.toString()); check(tmp.renameTo(file)) }
  suspend fun hasSessions(): Boolean = withContext(Dispatchers.IO) { mutex.withLock {
@@ -221,7 +241,9 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
  private fun restoreLun(path: String, state: JSONObject) { unbound(path) { io.validate(path); io.write("$path/file", ""); for(key in listOf("cdrom", "ro", "removable", "inquiry_string")) if(state.optString(key).isNotEmpty() || (key == "inquiry_string" && io.exists("$path/$key"))) io.write("$path/$key", state.getString(key)); io.write("$path/file", state.getString("file")) } }
  suspend fun host(image: DiskImage, lun: Lun, mode: HostMode, settings: Preferences) = withContext(Dispatchers.IO) { mutex.withLock {
   io.validate(lun.path); require(!mode.cd || lun.supportsCdrom); require(lun.supportsReadOnly || mode.ro == lun.readOnly)
-  val path = io.shell.run("readlink -f ${RootShell.quote(image.path)}"); require(path.startsWith("/")); io.shell.run("test -r ${RootShell.quote(path)}")
+  val mtp = File(file.parent, "folder-mtp.json")
+  if(mtp.exists()) require(JSONObject(mtp.readText()).optString("boot") != io.read("/proc/sys/kernel/random/boot_id")) { "Stop folder MTP sharing first" }
+  val path = io.shell.run("readlink -f ${RootShell.quote(image.path)}"); require(path.startsWith("/")); assertLocalDetachedNow(path); io.shell.run("test -r ${RootShell.quote(path)}")
   require(io.shell.run("stat -c '%s' ${RootShell.quote(path)}").toLong() >= 614400) { "Image too small" }
   var state = load(); val boot = io.read("/proc/sys/kernel/random/boot_id")
   if(state.optString("boot", boot) != boot) { file.renameTo(File(file.parent, "usb-state.previous-boot.json")); state = JSONObject() }

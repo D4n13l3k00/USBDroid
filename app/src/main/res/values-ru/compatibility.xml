@@ -1,6 +1,6 @@
 <resources>
- <string name="usb_compatibility">Режим совместимости USB</string>
- <string name="usb_compatibility_description">Поддерживает ConfigFS, если Android сбрасывает конфигурацию USB. Включите, если диск отключается или не определяется.</string>
- <string name="usb_compatibility_failed">Восстановление USB остановлено</string>
- <string name="usb_compatibility_failed_description">Не удалось сохранить подключение диска. Извлеките образы и проверьте диагностику.</string>
+ <string name="usb_compatibility">Р РµР¶РёРј СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё USB</string>
+ <string name="usb_compatibility_description">РџРѕРґРґРµСЂР¶РёРІР°РµС‚ ConfigFS, РµСЃР»Рё Android СЃР±СЂР°СЃС‹РІР°РµС‚ РєРѕРЅС„РёРіСѓСЂР°С†РёСЋ USB. Р’РєР»СЋС‡РёС‚Рµ, РµСЃР»Рё РґРёСЃРє РѕС‚РєР»СЋС‡Р°РµС‚СЃСЏ РёР»Рё РЅРµ РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ.</string>
+ <string name="usb_compatibility_failed">Р’РѕСЃСЃС‚Р°РЅРѕРІР»РµРЅРёРµ USB РѕСЃС‚Р°РЅРѕРІР»РµРЅРѕ</string>
+ <string name="usb_compatibility_failed_description">РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РїРѕРґРєР»СЋС‡РµРЅРёРµ USB-РґРёСЃРєР°. РР·РІР»РµРєРёС‚Рµ РѕР±СЂР°Р·С‹ Рё РїСЂРѕРІРµСЂСЊС‚Рµ РґРёР°РіРЅРѕСЃС‚РёРєСѓ.</string>
 </resources>
