@@ -20,7 +20,7 @@ import java.util.UUID
 data class InterruptedOperation(val journal: String, val imageId: String?, val file: String, val completed: Int, val total: Int)
 data class UndoRemoval(val token: String, val ids: List<String>)
 data class OperationNotice(val token: String, val title: String)
-data class AppState(val images: List<ImageEntry> = emptyList(), val preferences: Preferences = Preferences(), val usb: UsbStatus = UsbStatus(), val catalog: List<Release> = emptyList(), val jobs: List<TransferJob> = emptyList(), val storage: List<StorageLocation> = emptyList(), val repositories: List<CatalogRepository> = emptyList(), val operations: Set<String> = emptySet(), val message: String? = null, val settingsLoaded: Boolean = false, val rootChecked: Boolean = false, val rootBusy: Boolean = false, val messageIsError: Boolean = false, val undoRemoval: UndoRemoval? = null, val notice: OperationNotice? = null, val duplicateDownload: Release? = null, val diagnostics: String = "", val localImages: List<dev.usbdroid.files.LocalImage> = emptyList(), val folderShare: dev.usbdroid.files.FolderShare? = null, val temporaryImageId: String? = null, val interrupted: List<InterruptedOperation> = emptyList())
+data class AppState(val images: List<ImageEntry> = emptyList(), val preferences: Preferences = Preferences(), val usb: UsbStatus = UsbStatus(), val catalog: List<Release> = emptyList(), val jobs: List<TransferJob> = emptyList(), val storage: List<StorageLocation> = emptyList(), val repositories: List<CatalogRepository> = emptyList(), val operations: Set<String> = emptySet(), val message: String? = null, val settingsLoaded: Boolean = false, val rootChecked: Boolean = false, val rootBusy: Boolean = false, val messageIsError: Boolean = false, val usbControllerBusy: Boolean = false, val undoRemoval: UndoRemoval? = null, val notice: OperationNotice? = null, val duplicateDownload: Release? = null, val diagnostics: String = "", val localImages: List<dev.usbdroid.files.LocalImage> = emptyList(), val folderShare: dev.usbdroid.files.FolderShare? = null, val temporaryImageId: String? = null, val interrupted: List<InterruptedOperation> = emptyList(), val imageInfo: Map<String, dev.usbdroid.files.ImageInfo> = emptyMap())
 class AppViewModel(application: Application): AndroidViewModel(application) {
  private val app = application as USBDroidApplication
  val usb get() = app.usb
@@ -46,9 +46,9 @@ class AppViewModel(application: Application): AndroidViewModel(application) {
   viewModelScope.launch { dao.repositories().collect { value -> _state.update { it.copy(repositories = value) } } }
   viewModelScope.launch { app.settings.flow.collect { value -> _state.update { current -> val p = current.preferences; val shown = if(pendingSortWrites == 0) value else value.copy(imageSort = p.imageSort, imageDescending = p.imageDescending, downloadSort = p.downloadSort, downloadDescending = p.downloadDescending, jobSort = p.jobSort, jobDescending = p.jobDescending); current.copy(preferences = shown, settingsLoaded = true) }; if(value.welcomeComplete && !_state.value.rootChecked && !_state.value.rootBusy) inspect() } }
  }
- fun clearMessage() { _state.update { it.copy(message = null) } }
- fun notify(message: String) { _state.update { it.copy(message = message, messageIsError = false) } }
- fun notifyError(message: String) { _state.update { it.copy(message = message, messageIsError = true) } }
+ fun clearMessage() { _state.update { it.copy(message = null, usbControllerBusy = false) } }
+ fun notify(message: String) { _state.update { it.copy(message = message, messageIsError = false, usbControllerBusy = false) } }
+ fun notifyError(message: String) { _state.update { it.copy(message = message, messageIsError = true, usbControllerBusy = false) } }
  fun clearNotice(token: String) { _state.update { if(it.notice?.token == token) it.copy(notice = null) else it } }
  fun clearUndo(token: String) { _state.update { if(it.undoRemoval?.token == token) it.copy(undoRemoval = null) else it } }
  fun clearDuplicate() { _state.update { it.copy(duplicateDownload = null) } }
@@ -93,7 +93,10 @@ class AppViewModel(application: Application): AndroidViewModel(application) {
   viewModelScope.launch {
    try { withContext(Dispatchers.IO) { block() }; finished() }
    catch(e: CancellationException) { throw e }
-   catch(e: Exception) { notifyError(e.message ?: "Operation failed"); refreshInterrupted() }
+   catch(e: Exception) {
+    _state.update { it.copy(message = e.message ?: "Operation failed", messageIsError = true, usbControllerBusy = e is UsbControllerBusyException) }
+    refreshInterrupted()
+   }
    finally { if(key.isNotBlank()) _state.update { it.copy(operations = it.operations - key) } }
   }
  }
@@ -104,9 +107,14 @@ class AppViewModel(application: Application): AndroidViewModel(application) {
   _state.update { it.copy(temporaryImageId = if(temporary.exists()) runCatching { JSONObject(temporary.readText()).getString("image") }.getOrNull() else null) }
  }
  fun refreshAccess() = launch("access-refresh") { refreshAccessNow() }
- fun mountLocal(image: ImageEntry, readOnly: Boolean) = launch("local-mount:${image.id}") { ImageLocks.use(image.id) {
+ fun inspectImage(image: ImageEntry) = launch("image-info:${image.id}") {
+  val info=app.usb.serialized { dev.usbdroid.files.ImageInspector(app).inspect(image.physicalPath ?: error(app.getString(R.string.copy_required))) }
+  _state.update { it.copy(imageInfo=it.imageInfo + (image.id to info.copy(modified=image.modified,mountIds=app.imageAccess.mounts.value.filter { mount -> mount.image==image.physicalPath }.map { mount -> mount.id }.toSet()))) }
+ }
+ fun checkFilesystem(image: ImageEntry, partition: Int, repair: Boolean) = submit("FS_CHECK",image.title,JSONObject().put("image",image.id).put("partition",partition).put("repair",repair), { viewModelScope.launch { dao.image(image.id)?.let { inspectImage(it) } } })
+ fun mountLocal(image: ImageEntry, readOnly: Boolean, partition: Int? = null) = launch("local-mount:${image.id}") { ImageLocks.use(image.id) {
   require(dao.image(image.id) != null) { "Image no longer exists" }
-  app.imageAccess.mount(image.physicalPath ?: error(app.getString(R.string.copy_required)), image.title, readOnly)
+  app.imageAccess.mount(image.physicalPath ?: error(app.getString(R.string.copy_required)), image.title, readOnly, partition)
  } }
  fun unmountLocal(id: String) = launch("local-unmount:$id") {
   val mounted = app.imageAccess.mounts.value.firstOrNull { it.id == id }
@@ -135,7 +143,7 @@ class AppViewModel(application: Application): AndroidViewModel(application) {
   if(entry != null) dao.image(entry.id)?.takeIf { it.isMtp && it.physicalPath == path }?.let { dao.putImage(it.copy(mtpReadOnly = readOnly)) }
  }
  fun stopFolderMtp() = launch("folder-mtp-stop") { app.folderUsb.stop(); app.stopService(Intent(app, dev.usbdroid.files.FolderSharingService::class.java)); _state.update { it.copy(usb = usb.inspect()) } }
- fun folderImage(source: String, title: String, filesystem: String, extraMiB: Long) = submit("FOLDER_IMAGE", title, JSONObject().put("source", source).put("filesystem", filesystem).put("extraMiB", extraMiB), { refreshAccess() })
+ fun folderImage(source: String, title: String, filesystem: String, extraMiB: Long, layout: String = "NONE") = submit("FOLDER_IMAGE", title, JSONObject().put("source", source).put("filesystem", filesystem).put("extraMiB", extraMiB).put("layout", layout), { refreshAccess() })
  fun keepFolderImage() = launch("folder-keep") { File(app.filesDir, "folder-image.json").delete(); _state.update { it.copy(temporaryImageId = null) } }
  fun discardFolderImage(image: ImageEntry, finished: () -> Unit = {}) = launch("folder-discard", finished) {
   ImageLocks.use(image.id) { app.library.delete(image, true) }
@@ -191,8 +199,8 @@ class AppViewModel(application: Application): AndroidViewModel(application) {
   }
   withContext(Dispatchers.Main) { loaded(result) }
  }
- fun estimateFolder(source: String, filesystem: String, extra: Long, loaded: (dev.usbdroid.files.FolderEstimate) -> Unit) = launch("folder-estimate") {
-  val estimate = dev.usbdroid.files.FolderImage(app).estimate(source, ImageFilesystem.valueOf(filesystem), extra)
+ fun estimateFolder(source: String, filesystem: String, extra: Long, layout: String = "NONE", loaded: (dev.usbdroid.files.FolderEstimate) -> Unit) = launch("folder-estimate") {
+  val estimate = dev.usbdroid.files.FolderImage(app).estimate(source, ImageFilesystem.valueOf(filesystem), extra, dev.usbdroid.data.ImageLayout.valueOf(layout))
   withContext(Dispatchers.Main) { loaded(estimate) }
  }
  fun previewFolderCopyBack(image: ImageEntry, loaded: (dev.usbdroid.files.CopyBackPlan) -> Unit) = launch("folder-preview:${image.id}") {
@@ -253,7 +261,7 @@ class AppViewModel(application: Application): AndroidViewModel(application) {
  fun add(uri: Uri) = launch("add-uri") { app.library.addUri(uri) }
  fun addPath(path: String, finished: () -> Unit = {}) = launch("add-path", finished) { app.library.addPath(path) }
  fun create(name: String, size: Long, fat: Boolean, allocate: Boolean) = submit("CREATE", name, JSONObject().put("name", if(name.endsWith(".img", true)) name else "$name.img").put("mib", size).put("fat", fat).put("allocate", allocate))
- fun createFormattedAt(name: String, size: Long, filesystem: String, allocate: Boolean, storageId: String?, finished: () -> Unit = {}) = submit("CREATE", name, JSONObject().put("name", name).put("mib", size).put("filesystem", filesystem).put("allocate", allocate).put("storage", storageId), finished)
+ fun createFormattedAt(name: String, size: Long, filesystem: String, allocate: Boolean, storageId: String?, finished: () -> Unit = {}, layout: String = "NONE") = submit("CREATE", name, JSONObject().put("name", name).put("mib", size).put("layout", layout).put("filesystem", filesystem).put("allocate", allocate).put("storage", storageId), finished)
  fun createAt(name: String, size: Long, fat: Boolean, allocate: Boolean, storageId: String?, finished: () -> Unit = {}) = submit("CREATE", name, JSONObject().put("name", name).put("mib", size).put("fat", fat).put("allocate", allocate).put("storage", storageId), finished)
  fun rename(image: ImageEntry, title: String, finished: () -> Unit = {}) = launch("rename:${image.id}", finished) { require(title.isNotBlank()); dao.putImage(image.copy(title = title.trim())) }
  fun remove(image: ImageEntry, delete: Boolean, finished: () -> Unit = {}) = launch("remove:${image.id}", finished) { ImageLocks.use(image.id) { app.library.delete(image, delete) }; if(!delete) _state.update { it.copy(undoRemoval = UndoRemoval(UUID.randomUUID().toString(), listOf(image.id))) } }

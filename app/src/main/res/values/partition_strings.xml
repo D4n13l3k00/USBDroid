@@ -1,0 +1,9 @@
+<resources>
+ <string name="image_layout">Partition table</string>
+ <string name="layout_none">None</string>
+ <string name="layout_hint">MBR and GPT create one partition. The image size includes the partition table.</string>
+ <string name="usb_assigned_count">Images assigned to USB: %1$d</string>
+ <string name="usb_access_unavailable">Storage access: no kernel data</string>
+ <string name="usb_connection_suspended">USB connection suspended</string>
+ <string name="folder_mtp_ready">MTP ready; waiting for a USB host</string>
+</resources>

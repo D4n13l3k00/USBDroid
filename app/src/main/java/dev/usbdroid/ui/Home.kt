@@ -154,7 +154,7 @@ import dev.usbdroid.usb.*
          else ImageLibraryRow(entry, state, expandedImageId == entry.id, { expanded -> imageId = entry.id; expandedImageId = if(expanded) entry.id else null }, Modifier.animateItem(placementSpec = null), { lun, mode, done -> model.host(entry, lun, mode) { if(expandedImageId == entry.id) done() } }, { model.ejectImage(entry) }, { action ->
           expandedImageId = null
           imageId = entry.id
-          when(action) { 13 -> route = "image-files"; 12 -> model.favorite(setOf(entry.id), entry.id !in state.preferences.favorites); 0 -> route = "host"; 4 -> route = "hide"; 5 -> route = "delete"; 6 -> route = "rename"; 7 -> route = "resize"; 8 -> route = "move"; 9 -> exporter.launch(entry.title + ".${entry.file.extension.ifBlank { "img" }}"); 10 -> route = "hybrid"; 11 -> model.copyForHost(entry) }
+          when(action) { 14 -> route = "image-info"; 13 -> route = "image-files"; 12 -> model.favorite(setOf(entry.id), entry.id !in state.preferences.favorites); 0 -> route = "host"; 4 -> route = "hide"; 5 -> route = "delete"; 6 -> route = "rename"; 7 -> route = "resize"; 8 -> route = "move"; 9 -> exporter.launch(entry.title + ".${entry.file.extension.ifBlank { "img" }}"); 10 -> route = "hybrid"; 11 -> model.copyForHost(entry) }
          }, { algorithm -> model.checksum(entry, algorithm) }, selectionMode = selectionMode, selected = entry.id in selectedIds, select = { selectImage(entry.id) }, favorite = entry.id in state.preferences.favorites, model = model)
         }
        }
@@ -184,7 +184,7 @@ import dev.usbdroid.usb.*
  }
  AnimatedVisibility(visible = currentRoute != null && !popup, enter = fadeIn(tween(180)) + slideInHorizontally(tween(180)) { it / 12 }, exit = fadeOut(tween(180)) + slideOutHorizontally(tween(180)) { it / 12 }) {
   when(val shown = renderedRoute) {
-   "create" -> CreateImageScreen(state.storage, close, { name, size, fat, allocated, storage -> model.createFormattedAt(name, size, fat, allocated, storage, close) }, busy = state.working("create"))
+   "create" -> CreateImageScreen(state.storage, close, { name, size, fat, allocated, storage, layout -> model.createFormattedAt(name, size, fat, allocated, storage, close, layout) }, busy = state.working("create"))
    "wizard" -> SetupScreen(state, model, permissions, { tree.launch(null) }, close, notificationsAllowed)
    null -> Unit
    else -> ActionScreens(shown, image, state, model, close, { route = it }, { copy -> directAdd = !copy; route = null; importer.launch(arrayOf("*/*")) }, { tree.launch(null) }, { if(image != null) exporter.launch(image.title + ".${image.file.extension.ifBlank { "img" }}") }, { route = null; page = 1; model.catalog() })
@@ -220,9 +220,18 @@ import dev.usbdroid.usb.*
 private fun hostModeTextValue(lun: Lun) = if(lun.cdrom) "CD-ROM" else if(lun.readOnly) "USB RO" else "USB RW"
 @Composable fun Messages(state: AppState, model: AppViewModel, recover: ((ErrorKind) -> Unit)? = null) {
  state.duplicateDownload?.let { release -> ImagePopup(model::clearDuplicate, { Text(stringResource(R.string.download_duplicate_title)) }, { Text(stringResource(R.string.download_duplicate_body)) }, { Button({ model.clearDuplicate(); model.download(release, allowDuplicate = true) }) { Text(stringResource(R.string.download_again)) } }, dismissButton = { TextButton(model::clearDuplicate) { Text(stringResource(R.string.ui_10)) } }) }
- state.message?.let { message -> TintedAlertDialog(model::clearMessage, title = { Text(if(state.messageIsError) stringResource(errorTitleResource(errorKind(message))) else "USBDroid") }, text = {
-  if(state.messageIsError) ErrorExplanation(message, showTitle = false, recover = recover ?: { model.clearMessage(); model.inspect() }) else androidx.compose.foundation.text.selection.SelectionContainer { Text(message, Modifier.verticalScroll(rememberScrollState())) }
- }, confirmButton = { TextButton(model::clearMessage) { Text(stringResource(R.string.ui_67)) } }) }
+ state.message?.let { message ->
+  val offerCompatibility = state.usbControllerBusy && !state.preferences.usbCompatibility
+  TintedAlertDialog(model::clearMessage, title = { Text(if(state.messageIsError) stringResource(errorTitleResource(errorKind(message))) else "USBDroid") }, text = {
+   if(state.usbControllerBusy) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Text(stringResource(if(offerCompatibility) R.string.usb_controller_busy_hint else R.string.usb_controller_busy_enabled_hint))
+    androidx.compose.foundation.text.selection.SelectionContainer { Text(message, style = MaterialTheme.typography.bodySmall) }
+   } else if(state.messageIsError) ErrorExplanation(message, showTitle = false, recover = recover ?: { model.clearMessage(); model.inspect() }) else androidx.compose.foundation.text.selection.SelectionContainer { Text(message, Modifier.verticalScroll(rememberScrollState())) }
+  }, confirmButton = {
+   if(offerCompatibility) BusyTextButton(stringResource(R.string.usb_enable_compatibility), state.working("settings"), { model.settings(state.preferences.copy(usbCompatibility = true, autoUsb = true), model::clearMessage) }, enabled = !state.usbWorking())
+   else TextButton(model::clearMessage) { Text(stringResource(R.string.ui_67)) }
+  }, dismissButton = if(offerCompatibility) { { TextButton(model::clearMessage, enabled = !state.working("settings")) { Text(stringResource(R.string.setup_later)) } } } else null)
+ }
 }
 
 @Composable private fun SettingsList(state: AppState, model: AppViewModel, scroll: LazyListState, open: (String) -> Unit) {
@@ -257,13 +266,13 @@ private fun hostModeTextValue(lun: Lun) = if(lun.cdrom) "CD-ROM" else if(lun.rea
  if(!first) HorizontalDivider(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
  Text(title, Modifier.padding(horizontal = 20.dp, vertical = 12.dp), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
 } }
-@Composable private fun usbConnectionText(raw: String): String {
- val status = raw.lowercase(java.util.Locale.ROOT)
- return stringResource(when {
-  "configured" in status || "suspended" in status -> R.string.usb_connection_configured
-  "disconnected" in status || "not attached" in status || "not-attached" in status -> R.string.usb_connection_disconnected
-  "connected" in status || "powered" in status || "addressed" in status || "attached" in status -> R.string.usb_connection_attached
-  else -> R.string.usb_connection_unknown
+@Composable fun usbConnectionText(raw: String): String {
+ return stringResource(when(dev.usbdroid.usb.ConnectionState.from(raw)) {
+  dev.usbdroid.usb.ConnectionState.CONFIGURED -> R.string.usb_connection_configured
+  dev.usbdroid.usb.ConnectionState.DETACHED -> R.string.usb_connection_disconnected
+  dev.usbdroid.usb.ConnectionState.ATTACHED -> R.string.usb_connection_attached
+  dev.usbdroid.usb.ConnectionState.SUSPENDED -> R.string.usb_connection_suspended
+  dev.usbdroid.usb.ConnectionState.UNKNOWN -> R.string.usb_connection_unknown
  })
 }
 @Composable private fun SettingsLink(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, click: () -> Unit) { ListItem(headlineContent = { Text(title) }, leadingContent = { Icon(icon, null) }, trailingContent = { Icon(Icons.Rounded.ChevronRight, null) }, modifier = Modifier.clickable(onClick = click)) }
@@ -275,6 +284,7 @@ private fun hostModeTextValue(lun: Lun) = if(lun.cdrom) "CD-ROM" else if(lun.rea
   "add" -> MenuDialog(stringResource(R.string.ui_73), listOf(stringResource(R.string.ui_108), stringResource(R.string.ui_109), stringResource(R.string.ui_110), stringResource(R.string.ui_111), stringResource(R.string.ui_112), stringResource(R.string.folder_share)), close, busy = listOfNotNull(1.takeIf { state.working("create") }).toSet()) { index -> when(index) { 0 -> import(true); 1 -> choose("create"); 2 -> downloads(); 3 -> import(false); 4 -> choose("path"); 5 -> choose("folder") } }
   "folder" -> FolderShareScreen(state, model, close)
   "image-files" -> ImageBrowserScreen(image, state, model, close)
+  "image-info" -> if(image != null) ImageInfoScreen(image,state,model,close)
   "host" -> if(image != null) { if(image.physicalPath == null) ConfirmDialog(stringResource(R.string.ui_113), stringResource(R.string.copy_space, sizeText(image.size)), close, busy = state.imageWorking(image.id)) { model.copyForHost(image) } else HostImageDialog(image, state, close, { lun, mode -> model.host(image, lun, mode, close) }, { model.ejectImage(image) }) }
   "actions" -> if(image != null) {
    val connected = state.usb.luns.any { it.file == image.physicalPath }

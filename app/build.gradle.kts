@@ -6,7 +6,7 @@ android {
  namespace = "dev.usbdroid"
  compileSdk = 35
  ndkVersion = "28.2.13676358"
- defaultConfig { applicationId = "dev.usbdroid"; minSdk = 26; targetSdk = 35; versionCode = 13; versionName = "1.2.0"; ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") } }
+ defaultConfig { applicationId = "dev.usbdroid"; minSdk = 26; targetSdk = 35; versionCode = 16; versionName = "1.3.0"; ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") } }
  defaultConfig { testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
  kotlinOptions { jvmTarget = "17" }

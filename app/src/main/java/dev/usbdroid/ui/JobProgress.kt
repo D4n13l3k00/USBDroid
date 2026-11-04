@@ -20,6 +20,7 @@ fun byteText(bytes: Long): String = when {
 @Composable fun jobPhase(job: TransferJob): String {
  val phase = runCatching { JSONObject(job.args).optString("_phase") }.getOrDefault("")
  return stringResource(when {
+  phase == "checking" -> R.string.fs_check
   phase == "hashing" || job.kind == "CHECKSUM" -> R.string.checksum_calculating
   phase == "formatting" -> R.string.filesystem_formatting
   phase == "saving" -> R.string.phase_saving

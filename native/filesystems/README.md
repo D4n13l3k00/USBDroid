@@ -1,6 +1,6 @@
-# Форматтеры
+# Форматирование и проверка
 
-exfatprogs, e2fsprogs, ntfs-3g и btrfs-progs с библиотеками для ARM64, ARMv7 и x86_64. FAT16/FAT32 реализованы в Kotlin.
+exfatprogs, e2fsprogs, ntfs-3g и btrfs-progs с библиотеками для ARM64, ARMv7 и x86_64. FAT16/FAT32 создаются в Kotlin. Для проверки включены e2fsck, fsck.exfat, ntfsfix и btrfs check. FAT проверяется системной fsck_msdos.
 
 `provenance-*.json` содержит версии, URL пакетов и SHA-256. `sources/` содержит исходные архивы, `recipes/` — закреплённые рецепты и патчи Termux. Commit указан в `termux-commit.txt`.
 

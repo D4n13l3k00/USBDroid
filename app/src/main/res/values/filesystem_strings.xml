@@ -1,0 +1,22 @@
+<resources>
+ <string name="image_information">Image information</string>
+ <string name="partition_number">Partition %1$d</string>
+ <string name="fs_check">Check filesystem</string>
+ <string name="fs_repair">Repair</string>
+ <string name="fs_repair_description">Repair runs on a copy. A backup is kept; the original is replaced only after a successful check. Required free space: %1$s.</string>
+ <string name="fs_volume">Volume</string>
+ <string name="fs_label">Label: %1$s</string>
+ <string name="fs_partition_size">Partition size: %1$s</string>
+ <string name="fs_free">Free: %1$s</string>
+ <string name="fs_free_mount">Available after opening on the phone</string>
+ <string name="fs_detach">Unmount the image on the phone and eject it from USB before checking.</string>
+ <string name="fs_ntfs_limited">NTFS: basic checks only. Full checks require chkdsk on Windows.</string>
+ <string name="fs_clean">Check passed</string>
+ <string name="fs_not_clean">The check did not confirm filesystem integrity</string>
+ <string name="fs_export_backup">Export backup</string>
+ <string name="fs_check_button">Check</string>
+ <string name="fs_checked_at">Last check: %1$s</string>
+ <string name="folder_mtp_usb_busy">USB is reserved for an MTP folder</string>
+ <string name="fs_unknown">Not detected</string>
+ <string name="fs_btrfs_readonly">Btrfs: checking is available; automatic repair is disabled.</string>
+</resources>

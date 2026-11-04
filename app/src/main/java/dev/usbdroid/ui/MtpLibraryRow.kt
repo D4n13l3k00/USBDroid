@@ -35,7 +35,7 @@ import dev.usbdroid.data.ImageEntry
       Text(entry.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyLarge)
      }
      Text(if(connected) "MTP · ${stringResource(if(entry.mtpReadOnly) R.string.folder_read_only else R.string.folder_read_write)}" else "MTP", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-     Text(stringResource(if(connected) R.string.folder_mtp_active else R.string.folder_not_connected), style = MaterialTheme.typography.bodyMedium, color = if(connected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+     Text(stringResource(if(connected) if(state.folderShare?.running == false) R.string.folder_mtp_stopped else if(state.folderShare?.connected == true) R.string.folder_mtp_active else R.string.folder_mtp_ready else R.string.folder_not_connected), style = MaterialTheme.typography.bodyMedium, color = if(connected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
     }
     Box {
      IconButton({ expand(false); menu = true }) { Icon(Icons.Rounded.MoreVert, null) }

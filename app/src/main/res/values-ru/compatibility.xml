@@ -3,4 +3,7 @@
  <string name="usb_compatibility_description">Поддерживает ConfigFS, если Android сбрасывает конфигурацию USB. Включите, если диск отключается или не определяется.</string>
  <string name="usb_compatibility_failed">Восстановление USB остановлено</string>
  <string name="usb_compatibility_failed_description">Не удалось сохранить подключение USB-диска. Извлеките образы и проверьте диагностику.</string>
+ <string name="usb_enable_compatibility">Включить совместимость</string>
+ <string name="usb_controller_busy_hint">Другая USB-конфигурация заняла контроллер. Включите совместимость и автоматическое переключение USB, затем повторите подключение образа. На время подключения передача файлов телефона по USB и проводной ADB будут недоступны; ADB по Wi-Fi можно продолжать использовать.</string>
+ <string name="usb_controller_busy_enabled_hint">Другая USB-конфигурация заняла контроллер даже с включённой совместимостью. Перед повторной попыткой проверьте диагностику USB и другие приложения, управляющие USB.</string>
 </resources>

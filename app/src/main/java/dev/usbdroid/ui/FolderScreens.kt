@@ -41,10 +41,11 @@ import kotlinx.coroutines.withContext
  var mode by rememberSaveable { mutableIntStateOf(if(state.temporaryImageId != null) 1 else 0) }
  var readOnly by rememberSaveable { mutableStateOf(false) }
  var filesystem by rememberSaveable { mutableStateOf("FAT32") }
+ var layout by rememberSaveable { mutableStateOf("NONE") }
  var extra by rememberSaveable { mutableStateOf("128") }
  var estimate by remember { mutableStateOf<dev.usbdroid.files.FolderEstimate?>(null) }
  var plan by remember { mutableStateOf<dev.usbdroid.files.CopyBackPlan?>(null) }
- LaunchedEffect(source, filesystem, extra) { estimate = null }
+ LaunchedEffect(source, filesystem, extra, layout) { estimate = null }
  var host by remember { mutableStateOf(false) }
  var discard by remember { mutableStateOf(false) }
  val temporary = state.images.firstOrNull { it.id == state.temporaryImageId }
@@ -74,12 +75,14 @@ import kotlinx.coroutines.withContext
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
      ImageFilesystem.entries.filter { it != ImageFilesystem.NONE }.forEach { fs -> FilterChip(filesystem == fs.name, { filesystem = fs.name }, label = { Text(fs.label) }, enabled = !busy) }
     }
+    Text(stringResource(R.string.image_layout), style = MaterialTheme.typography.titleMedium)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { dev.usbdroid.data.ImageLayout.entries.forEach { item -> FilterChip(layout == item.name, { layout = item.name }, enabled = !busy, label = { Text(if(item.name == "NONE") stringResource(R.string.layout_none) else item.name) }) } }
     OutlinedTextField(extra, { extra = it }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.folder_extra)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), enabled = !busy, singleLine = true)
-    BusyButton(stringResource(R.string.folder_calculate), state.working("folder-estimate"), { val request = Triple(source, filesystem, extra); model.estimateFolder(source, filesystem, extra.toLong()) { if(request == Triple(source, filesystem, extra)) estimate = it } }, Modifier.fillMaxWidth(), enabled = !busy && source.isNotBlank() && extra.toLongOrNull() in 16L..1048576L)
+    BusyButton(stringResource(R.string.folder_calculate), state.working("folder-estimate"), { val request = listOf(source, filesystem, extra, layout); model.estimateFolder(source, filesystem, extra.toLong(), layout) { if(request == listOf(source, filesystem, extra, layout)) estimate = it } }, Modifier.fillMaxWidth(), enabled = !busy && source.isNotBlank() && extra.toLongOrNull() in 16L..1048576L)
     estimate?.let { value ->
      Text(stringResource(R.string.folder_estimate, value.files, byteText(value.fileBytes), byteText(value.reserveBytes), byteText(value.imageBytes), byteText(value.availableBytes)), style = MaterialTheme.typography.bodyMedium)
     }
-    BusyButton(stringResource(R.string.folder_make_image), busy, { model.folderImage(source, title, filesystem, extra.toLong()) }, Modifier.fillMaxWidth(), enabled = estimate?.let { it.availableBytes >= it.imageBytes } == true && !state.working("folder-estimate") && source.isNotBlank() && title.isNotBlank() && extra.toLongOrNull() in 16L..1048576L && temporary == null)
+    BusyButton(stringResource(R.string.folder_make_image), busy, { model.folderImage(source, title, filesystem, extra.toLong(), layout) }, Modifier.fillMaxWidth(), enabled = estimate?.let { it.availableBytes >= it.imageBytes } == true && !state.working("folder-estimate") && source.isNotBlank() && title.isNotBlank() && extra.toLongOrNull() in 16L..1048576L && temporary == null)
     state.jobs.filter { it.kind == "FOLDER_IMAGE" && it.running }.forEach { job -> JobProgress(job); Text(runCatching { org.json.JSONObject(job.args).optString("_file") }.getOrDefault(""), style = MaterialTheme.typography.bodySmall) }
     if(temporary != null) Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
      Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

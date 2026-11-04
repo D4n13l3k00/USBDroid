@@ -93,7 +93,7 @@ class ImageWorker(context: Context, parameters: WorkerParameters): CoroutineWork
    job = job.copy(result = image.id); return
   }
   if(job.kind == "FOLDER_IMAGE") {
-   val entry = dev.usbdroid.files.FolderImage(applicationContext).create(a.getString("source"), job.title, ImageFilesystem.valueOf(a.getString("filesystem")), a.getLong("extraMiB")) { value ->
+   val entry = dev.usbdroid.files.FolderImage(applicationContext).create(a.getString("source"), job.title, ImageFilesystem.valueOf(a.getString("filesystem")), a.getLong("extraMiB"), ImageLayout.valueOf(a.optString("layout", "NONE"))) { value ->
     job = job.copy(args = JSONObject(job.args).put("_file", value.file).toString())
     progress(value.bytes, value.total, true)
    }
@@ -108,6 +108,38 @@ class ImageWorker(context: Context, parameters: WorkerParameters): CoroutineWork
   require(image?.isMtp != true) { "This operation requires a disk image" }
   if(image != null) library.assertDetached(image)
   when(job.kind) {
+   "FS_CHECK" -> {
+    val target=image ?: error("Image not found")
+    val repair=a.optBoolean("repair"); val number=a.getInt("partition")
+    val tools=dev.usbdroid.files.FilesystemTools(applicationContext)
+    var backup: File?=null
+    var baseline: String?=null
+    if(repair) {
+     require(!target.location.startsWith("content:") && File(target.location).canWrite() && File(target.location).parentFile?.canWrite()==true) { "Copy the image into the app folder before repairing it" }
+     require(library.directory.usableSpace >= Math.multiplyExact(target.size,2)) { "Not enough space for repair and backup" }
+     copy(localSource(target),temp.outputStream(),target.size)
+     baseline=calculateAllHashes(temp).getValue("SHA-256")
+     val originals=File(library.directory,"originals").apply { mkdirs() }
+     backup=File(originals,"${job.id}.img")
+     val partial=File(originals,".${job.id}.partial")
+     copy(temp.inputStream(),partial.outputStream(),temp.length())
+     RandomAccessFile(partial,"rw").use { it.fd.sync() }
+     check(partial.renameTo(backup)) { "Cannot save backup" }
+     job=job.copy(args=JSONObject(job.args).put("_original",backup.path).toString()); dao.putJob(job)
+    }
+    job=job.copy(args=JSONObject(job.args).put("_phase","checking").toString()); progress(0,0,true)
+    val result=tools.check(if(repair) temp.path else target.physicalPath ?: error("Copy the image into the app folder first"),number,repair)
+    val verified=if(repair) tools.check(temp.path,number,false) else result
+    if(repair && verified.clean) {
+     val current=localSource(target).use { input -> val digest=MessageDigest.getInstance("SHA-256"); val buffer=ByteArray(1048576); while(true) { ensureActive(); val n=input.read(buffer); if(n<0) break; digest.update(buffer,0,n) }; digest.digest().joinToString("") { "%02x".format(it) } }
+     check(current==baseline) { "Image changed during repair" }
+     library.assertDetached(target)
+     val hashes=calculateAllHashes(temp)
+     job=job.copy(args=JSONObject(job.args).put("_phase","saving").toString()); progress(0,0,true)
+     replace(target,temp); saveHashes(target,hashes)
+    } else temp.delete()
+    job=job.copy(result=JSONObject().put("clean",verified.clean).put("repair",repair && verified.clean).put("limited",result.limited).put("code",verified.code).put("details",result.details+if(repair) "\n\n"+verified.details else "").put("backup",backup?.path).toString())
+   }
    "DOWNLOAD" -> {
     val client = OkHttpClient.Builder().connectTimeout(20, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).followSslRedirects(false).build()
     if(!a.optBoolean("_downloadComplete") || !temp.isFile) {
@@ -130,12 +162,12 @@ class ImageWorker(context: Context, parameters: WorkerParameters): CoroutineWork
    "CREATE" -> {
     val bytes = Math.multiplyExact(a.getLong("mib"), 1048576L); require(bytes >= 4194304 && bytes <= 1099511627776) { "Size outside 4 MiB–1 TiB" }
     val format = a.optString("filesystem").takeIf { it.isNotBlank() }?.let { ImageFilesystem.valueOf(it) }
-    if(format != null) require(bytes / 1048576 in format.minMiB..format.maxMiB) { "Invalid size for ${format.label}" }
+    if(format != null) require(PartitionTable.payloadBytes(bytes, ImageLayout.valueOf(a.optString("layout", "NONE"))) / 1048576 in format.minMiB..format.maxMiB) { "Invalid size for ${format.label}" }
     require(library.directory.usableSpace >= if(a.optBoolean("allocate")) bytes else format?.minimumWorkingSpace ?: 1048576) { "Not enough storage" }
     RandomAccessFile(temp, "rw").use { out -> out.setLength(bytes); if(a.optBoolean("allocate")) { val zeros = ByteArray(1048576); var done = 0L; while(done < bytes) { ensureActive(); out.write(zeros, 0, minOf(zeros.size.toLong(), bytes - done).toInt()); done += minOf(zeros.size.toLong(), bytes - done); progress(done, bytes) }; out.fd.sync() } }
     if(a.has("filesystem")) {
      job = job.copy(args = JSONObject(job.args).put("_phase", "formatting").toString()); progress(0, 0, true)
-     ImageFormatter.format(applicationContext, temp, library.directory, ImageFilesystem.valueOf(a.getString("filesystem")))
+     ImageFormatter.format(applicationContext, temp, library.directory, ImageFilesystem.valueOf(a.getString("filesystem")), ImageLayout.valueOf(a.optString("layout", "NONE")))
     } else if(a.optBoolean("fat")) FatFormatter.format(temp, bytes)
     if(a.optBoolean("testBoot")) TestBootImage.install(temp, applicationContext.assets.open("testboot/bios.bin").use { it.readBytes() }, applicationContext.assets.open("testboot/bootx64.efi").use { it.readBytes() })
     if(a.optBoolean("testCD")) { applicationContext.assets.open("testboot/test-cd.iso").use { source -> temp.outputStream().use { source.copyTo(it) } }; RandomAccessFile(temp, "rw").use { it.setLength(bytes) } }

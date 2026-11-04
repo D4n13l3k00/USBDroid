@@ -27,16 +27,26 @@ object RootShell {
 }
 interface Shell { fun run(script: String): String }
 object SuShell: Shell { override fun run(script: String) = RootShell.run(script) }
+class UsbControllerBusyException(val controller: String, val owner: String, cause: Exception): IllegalStateException("USB controller $controller is occupied by $owner", cause)
 class UsbIo(val shell: Shell) {
  fun read(path: String) = shell.run("cat ${RootShell.quote(path)}")
  fun write(path: String, value: String) {
   val command = "printf '%s\\n' ${RootShell.quote(value)} > ${RootShell.quote(path)}"
   if(path.endsWith("/UDC") && value.isBlank() && read(path).isBlank()) return
-  if(!path.endsWith("/UDC") || value.isBlank()) { shell.run(command); return }
+  if(path.endsWith("/UDC") && value.isBlank()) {
+   try { shell.run(command) } catch(e: Exception) { if(!e.message.orEmpty().contains("No such device") || read(path).isNotBlank()) throw e }
+   return
+  }
+  if(!path.endsWith("/UDC")) { shell.run(command); return }
   var failure: Exception? = null
   // Android's FunctionFS clients reopen descriptors asynchronously after an unbind.
   repeat(20) {
    try { if(read(path) != value) shell.run(command); return } catch(e: Exception) {
+    if(e.message.orEmpty().contains("Device or resource busy", ignoreCase = true)) {
+     val gadgets = path.substringBeforeLast('/').substringBeforeLast('/')
+     val owner = runCatching { shell.run("for p in ${RootShell.quote(gadgets)}/*/UDC; do [ \"${'$'}p\" = ${RootShell.quote(path)} ] && continue; if [ \"${'$'}(cat \"${'$'}p\" 2>/dev/null)\" = ${RootShell.quote(value)} ]; then printf '%s\\n' \"${'$'}p\"; fi; done") }.getOrDefault("").lineSequence().firstOrNull { it.startsWith("$gadgets/") && it.endsWith("/UDC") }
+     if(owner != null) throw UsbControllerBusyException(value, owner.removeSuffix("/UDC"), e)
+    }
     if(!e.message.orEmpty().contains("No such device")) throw e
     failure = e; Thread.sleep(250)
    }
@@ -81,7 +91,9 @@ class ConfigFsBackend(private val io: UsbIo, private val gadget: String, private
   return JSONObject().put("gadget", gadget).put("config", config).put("udc", io.read("$gadget/UDC")).put("links", JSONObject()).put("hiddenLinks", hidden).put("descriptors", descriptors).put("otherControllers", otherControllers)
  }
  override fun activate(lun: Lun, mode: String, snapshot: JSONObject) {
-  if(snapshot.optBoolean("compatibility")) {
+  if(snapshot.has("halFunctions")) {
+   UsbGadgetHal(io).setFunctions(0, snapshot.getJSONObject("otherControllers"), released = true)
+  } else if(snapshot.optBoolean("compatibility")) {
    io.shell.run("setprop sys.usb.config cdrom; setprop sys.usb.configfs 1")
   }
   val function = lun.path.substringBefore("/lun."); val config = snapshot.getString("config")
@@ -105,7 +117,7 @@ class ConfigFsBackend(private val io: UsbIo, private val gadget: String, private
   for(path in descriptors.keys()) { io.validate(path); io.write(path, when(path.substringAfterLast('/')) { "manufacturer" -> "USBDroid"; "product" -> "USBDroid USB Disk"; "serialnumber" -> "USBDroid-$anonymousId"; else -> "0" }) }
   if(needsLink) io.shell.run("ln -s ${RootShell.quote(function)} ${RootShell.quote(link)}")
   io.write("$gadget/UDC", controller)
-  if(snapshot.optBoolean("compatibility")) io.shell.run("setprop sys.usb.state cdrom")
+  if(snapshot.optBoolean("compatibility") && !snapshot.has("halFunctions")) io.shell.run("setprop sys.usb.state cdrom")
   if(needsLink) check(io.shell.run("if [ -L ${RootShell.quote(link)} ]; then readlink -f ${RootShell.quote(link)}; fi") == function) { "Android USB service removed the mass-storage function" }
  }
  fun maintain(luns: List<Lun>, snapshot: JSONObject): Boolean {
@@ -122,7 +134,7 @@ class ConfigFsBackend(private val io: UsbIo, private val gadget: String, private
  override fun restore(snapshot: JSONObject) {
   val links = snapshot.getJSONObject("links")
   val hidden = snapshot.optJSONObject("hiddenLinks") ?: JSONObject(); val descriptors = snapshot.optJSONObject("descriptors") ?: JSONObject()
-  if(links.length() == 0 && hidden.length() == 0 && descriptors.length() == 0 && !snapshot.optBoolean("boundByUs")) return
+  if(links.length() == 0 && hidden.length() == 0 && descriptors.length() == 0 && !snapshot.optBoolean("boundByUs") && !snapshot.has("halFunctions")) return
   io.write("$gadget/UDC", "")
   try {
    for(link in links.keys()) { io.validate(link); val function = links.getString(link); io.shell.run("if [ -L ${RootShell.quote(link)} ] && [ \"${'$'}(readlink -f ${RootShell.quote(link)})\" = ${RootShell.quote(function)} ]; then rm ${RootShell.quote(link)}; fi") }
@@ -132,9 +144,13 @@ class ConfigFsBackend(private val io: UsbIo, private val gadget: String, private
   finally {
    io.write("$gadget/UDC", snapshot.getString("udc"))
    val otherControllers = snapshot.optJSONObject("otherControllers") ?: JSONObject()
-   for(path in otherControllers.keys()) { io.validate(path); io.write(path, otherControllers.getString(path)) }
-   snapshot.optJSONObject("usbProperties")?.let { props ->
-    for(name in listOf("sys.usb.configfs", "sys.usb.config", "sys.usb.state")) io.shell.run("setprop $name ${RootShell.quote(props.getString(name))}")
+   if(snapshot.has("halFunctions")) {
+    UsbGadgetHal(io).setFunctions(snapshot.getLong("halFunctions"), otherControllers, released = false)
+   } else {
+    for(path in otherControllers.keys()) { io.validate(path); io.write(path, otherControllers.getString(path)) }
+    snapshot.optJSONObject("usbProperties")?.let { props ->
+     for(name in listOf("sys.usb.configfs", "sys.usb.config", "sys.usb.state")) io.shell.run("setprop $name ${RootShell.quote(props.getString(name))}")
+    }
    }
   }
  }
@@ -176,9 +192,21 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
   val backing = io.shell.run("for p in /sys/block/loop*/loop/backing_file; do [ -f \"${'$'}p\" ] && cat \"${'$'}p\"; done; true")
   require(backing.lines().none { it == path || "/$it" == path }) { "Image is in use by a loop device" }
  }
+ suspend fun <T> withDetachedImage(path: String, block: () -> T): T = serialized {
+  val canonical=io.shell.run("readlink -f ${RootShell.quote(path)}")
+  assertLocalDetachedNow(canonical)
+  val mtpJournal=File(file.parent,"folder-mtp.json")
+  if(mtpJournal.exists()) {
+   val mtp=JSONObject(mtpJournal.readText()); val folder=mtp.getString("folder").trimEnd('/')
+   require(!(mtp.optString("boot")==io.read("/proc/sys/kernel/random/boot_id") && (canonical==folder || canonical.startsWith(folder+"/")))) { "Disconnect the MTP folder containing this image first" }
+  }
+  val status=inspectNow(); check(status.root) { status.error ?: "Root required" }
+  require(status.luns.none { it.file==canonical || it.file==path }) { "Eject the image from USB first" }
+  block()
+ }
  suspend fun assertLocalDetached(path: String) = serialized { assertLocalDetachedNow(io.shell.run("readlink -f ${RootShell.quote(path)}")) }
  private fun load(): JSONObject = if(file.exists()) JSONObject(file.readText()) else JSONObject()
- private fun save(state: JSONObject) { val tmp = File(file.parent, "usb-state.tmp"); tmp.writeText(state.toString()); check(tmp.renameTo(file)) }
+ private fun save(state: JSONObject) = dev.usbdroid.files.DurableJournal.write(file, state.toString())
  suspend fun hasSessions(): Boolean = withContext(Dispatchers.IO) { mutex.withLock {
   val state = load()
   if(state.has("boot") && state.getString("boot") != io.read("/proc/sys/kernel/random/boot_id")) { check(file.renameTo(File(file.parent, "usb-state.previous-boot.json"))); return@withLock false }
@@ -196,6 +224,20 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
   if(controller.isNotBlank()) io.write(udcPath, "")
   try { return block() } finally { if(controller.isNotBlank()) io.write(udcPath, controller) }
  }
+ private fun connection(luns: List<Lun>): String {
+  val gadgets = luns.filter { it.file.isNotBlank() && "/functions/" in it.path }.map { it.path.substringBefore("/functions/") }.distinct()
+  if(gadgets.isNotEmpty()) return gadgets.map { gadget ->
+   val controller = io.read("$gadget/UDC")
+   if(controller.isBlank()) "not attached" else if(controller.matches(Regex("[A-Za-z0-9_.:-]+"))) io.read("/sys/class/udc/$controller/state") else ""
+  }.distinct().joinToString("\n")
+  return io.shell.run("cat /sys/class/android_usb/android0/state 2>/dev/null || true")
+ }
+ suspend fun refreshConnection() = withContext(Dispatchers.IO) { mutex.withLock {
+  val previous = _changes.replayCache.lastOrNull() ?: return@withLock
+  val luns = previous.luns.map { lun -> if(lun.file.isBlank()) lun else runCatching { lun.copy(file = backingFile(io.read("${lun.path}/file"))) }.getOrDefault(lun) }
+  val cable = runCatching { connection(luns) }.getOrDefault("")
+  if(cable != previous.cable || luns != previous.luns) _changes.tryEmit(previous.copy(cable = cable, luns = luns))
+ } }
  suspend fun inspect(): UsbStatus = withContext(Dispatchers.IO) { mutex.withLock { inspectNow().also { _changes.tryEmit(it) } } }
  private fun inspectNow(): UsbStatus = try {
   check(io.shell.run("id -u") == "0") { "Root access denied; allow USBDroid in KernelSU / Magisk" }
@@ -208,7 +250,7 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
   val luns = paths.mapNotNull { path -> runCatching { val p = path.removeSuffix("/file"); io.validate(p); val ro = io.exists("$p/ro"); val cd = io.exists("$p/cdrom"); Lun(p, backingFile(io.read(path)), if(ro) io.read("$p/ro") == "1" else true, cd && io.read("$p/cdrom") == "1", ro, cd) }.getOrNull() }
   val privateLuns = luns.filter { it.path.contains("/usb_gadget/usbdroid/") }
   val visibleLuns = if(privateLuns.isNotEmpty()) privateLuns + luns.filter { it.file.isNotBlank() && it !in privateLuns } else luns
-  UsbStatus(true, io.shell.run("getprop sys.usb.state"), io.shell.run("cat /sys/class/udc/*/state 2>/dev/null || cat /sys/class/android_usb/android0/state 2>/dev/null || true"), visibleLuns)
+  UsbStatus(true, io.shell.run("getprop sys.usb.state"), connection(visibleLuns), visibleLuns)
  } catch(e: Exception) { UsbStatus(error = e.message) }
  suspend fun prepareConfigfs(): UsbStatus = withContext(Dispatchers.IO) { mutex.withLock {
   ensurePrivateGadget()
@@ -260,6 +302,10 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
   if(settings.usbCompatibility && settings.autoUsb && b.id.startsWith("configfs:") && !backendState.optBoolean("compatibility")) {
    val props = JSONObject()
    for(name in listOf("sys.usb.config", "sys.usb.configfs", "sys.usb.state")) props.put(name, io.shell.run("getprop $name"))
+   if(props.getString("sys.usb.configfs") == "2" && UsbGadgetHal(io).available()) {
+    require(b.id.endsWith("/usbdroid")) { "USB HAL compatibility requires the USBDroid gadget" }
+    backendState.put("halFunctions", UsbGadgetHal.functions(props.getString("sys.usb.config")))
+   }
    backendState.put("usbProperties", props).put("compatibility", true)
   }
   val backendBefore = JSONObject(backendState.toString())
@@ -289,7 +335,7 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
      val links = backendState.getJSONObject("links")
      for(link in links.keys()) if(!oldLinks.has(link)) added.put(link, links.getString(link))
      delta.put("links", added).put("hiddenLinks", JSONObject()).put("descriptors", JSONObject()).put("otherControllers", JSONObject()).put("boundByUs", false)
-     delta.remove("usbProperties"); delta.put("compatibility", false)
+     delta.remove("usbProperties"); delta.remove("halFunctions"); delta.put("compatibility", false)
      delta.put("udc", activeUdc)
      b.restore(delta); backends.put(b.id, backendBefore)
     }
@@ -351,6 +397,8 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
    appendLine("ABIs: ${android.os.Build.SUPPORTED_ABIS.joinToString()}")
    appendLine("\n[USB]")
    appendLine("Root: ${status.root}; mode: ${status.mode}; cable: ${status.cable}")
+   appendLine("Assigned images: ${status.luns.count { it.file.isNotBlank() }}")
+   appendLine("USB state describes enumeration only; host filesystem mount and storage I/O are not exposed by the standard gadget interface.")
    if(status.error != null) appendLine("Error: ${status.error}")
    status.luns.forEach { appendLine("${it.path}\n  file=${it.file}\n  readOnly=${it.readOnly}; cdrom=${it.cdrom}; supportsRO=${it.supportsReadOnly}; supportsCD=${it.supportsCdrom}") }
    if(status.root) {
@@ -358,7 +406,7 @@ class UsbController(private val file: File, shell: Shell = SuShell) {
     read("Kernel and SELinux", "uname -a; getenforce")
     read("USB properties", "for p in sys.usb.config sys.usb.state sys.usb.configfs sys.usb.controller persist.sys.usb.config; do printf '%s=' \"\$p\"; getprop \"\$p\"; done")
     read("Gadget links", "find /config/usb_gadget /sys/kernel/config/usb_gadget -maxdepth 4 -type l -exec ls -l {} \\; 2>/dev/null || true")
-    read("USB controllers", "ls -l /sys/class/udc; for f in /config/usb_gadget/*/UDC /sys/kernel/config/usb_gadget/*/UDC; do if [ -f \"\$f\" ]; then printf '%s=' \"\$f\"; cat \"\$f\"; fi; done")
+    read("USB controllers", "ls -l /sys/class/udc; for s in /sys/class/udc/*/state; do [ -f \"\$s\" ] && { printf '%s=' \"\$s\"; cat \"\$s\"; }; done; for f in /config/usb_gadget/*/UDC /sys/kernel/config/usb_gadget/*/UDC; do if [ -f \"\$f\" ]; then printf '%s=' \"\$f\"; cat \"\$f\"; fi; done")
    }
    appendLine("\n[Recovery journal]")
    appendLine(if(file.exists()) runCatching { JSONObject(file.readText()).toString(2) }.getOrElse { "Unreadable: ${it.message}" } else "No active recovery journal")

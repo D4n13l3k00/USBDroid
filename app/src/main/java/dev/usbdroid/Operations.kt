@@ -5,6 +5,7 @@ import org.json.JSONObject
 
 fun operationKey(kind: String, args: JSONObject): String = when(kind) {
  "CREATE" -> "create"
+ "FS_CHECK" -> "fs-check:${args.optString("image")}"
  "FILE_TRANSFER" -> "image-file:${args.optString("mount")}"
  "FOLDER_COPYBACK" -> "folder-copyback:${args.optString("image")}"
  "FOLDER_IMAGE" -> "folder-image"

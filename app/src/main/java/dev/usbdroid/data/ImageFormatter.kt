@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import java.io.File
 
 enum class ImageFilesystem(val label: String, val minMiB: Long, val maxMiB: Long = 1048576) {
@@ -16,9 +17,34 @@ val ImageFilesystem.minimumWorkingSpace: Long get() = (if(this == ImageFilesyste
 
 /** Formats only newly created private staging files, never devices or library entries. */
 object ImageFormatter {
- suspend fun format(context: Context, file: File, directory: File, filesystem: ImageFilesystem) = withContext(Dispatchers.IO) {
+ suspend fun format(context: Context, file: File, directory: File, filesystem: ImageFilesystem, layout: ImageLayout = ImageLayout.NONE): Unit = withContext(Dispatchers.IO) {
   require(file.canonicalFile.parentFile == directory.canonicalFile && file.name.startsWith(".") && file.name.endsWith(".partial") && file.isFile) { "Only new staging images may be formatted" }
-  require(file.length() % 1048576 == 0L && file.length() / 1048576 in filesystem.minMiB..filesystem.maxMiB) { "Invalid size for ${filesystem.label}" }
+  require(file.length() % 1048576 == 0L && PartitionTable.payloadBytes(file.length(), layout) / 1048576 in filesystem.minMiB..filesystem.maxMiB) { "Invalid size for ${filesystem.label}" }
+  if(layout != ImageLayout.NONE) {
+   val payload = PartitionTable.payloadBytes(file.length(), layout)
+   require(payload / 1048576 in filesystem.minMiB..filesystem.maxMiB) { "Invalid partition size for ${filesystem.label}" }
+   require(directory.usableSpace >= filesystem.minimumWorkingSpace) { "Not enough storage for formatting" }
+   val volume = File.createTempFile(".volume-", ".partial", directory)
+   try {
+    java.io.RandomAccessFile(volume, "rw").use { it.setLength(payload) }
+    format(context, volume, directory, filesystem)
+    java.io.RandomAccessFile(volume, "r").use { input -> java.io.RandomAccessFile(file, "rw").use { output ->
+     val chunk = ByteArray(1048576); var position = 0L
+     while(position < payload) {
+      kotlinx.coroutines.currentCoroutineContext().ensureActive()
+      try { position = Os.lseek(input.fd, position, 3) } catch(e: android.system.ErrnoException) { if(e.errno == android.system.OsConstants.ENXIO) break }
+      if(position >= payload) break
+      input.seek(position)
+      val n = input.read(chunk, 0, minOf(chunk.size.toLong(), payload - position).toInt())
+      if(n < 0) break
+      if((0 until n).any { chunk[it] != 0.toByte() }) { output.seek(PartitionTable.START * 512 + position); output.write(chunk, 0, n) }
+      position += n
+     }
+     PartitionTable.write(output, layout, filesystem)
+    } }
+   } finally { volume.delete() }
+   return@withContext
+  }
   if(filesystem == ImageFilesystem.NONE) return@withContext
   if(filesystem == ImageFilesystem.FAT || filesystem == ImageFilesystem.FAT32) {
    FatFormatter.format(file, file.length(), forceFat32 = filesystem == ImageFilesystem.FAT32); return@withContext

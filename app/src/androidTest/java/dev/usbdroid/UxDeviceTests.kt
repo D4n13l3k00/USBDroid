@@ -107,7 +107,7 @@ class UxDeviceTests {
   compose.onNodeWithText(app.getString(R.string.error_copy)).assertIsDisplayed()
  }
  @Test fun choosingFilesystemShowsItsLimitsAndCompatibility() {
-  compose.setContent { USBDroidTheme(Preferences()) { CreateImageScreen(listOf(StorageLocation("default", "Images", "/tmp", "FILE", true)), {}, { _, _, _, _, _ -> }) } }
+  compose.setContent { USBDroidTheme(Preferences()) { CreateImageScreen(listOf(StorageLocation("default", "Images", "/tmp", "FILE", true)), {}, { _, _, _, _, _, _ -> }) } }
   compose.onNodeWithText("exFAT").performScrollTo().performClick()
   compose.onNodeWithText(app.getString(R.string.format_exfat_hint)).performScrollTo().assertIsDisplayed()
   compose.onNodeWithText("FAT32").performScrollTo().performClick()

@@ -46,7 +46,7 @@
  <string name="settings_images_downloads">Images and downloads</string>
  <string name="settings_support">Help and information</string>
  <string name="usb_connection_title">Computer connection</string>
- <string name="usb_connection_configured">Connected to a computer</string>
+ <string name="usb_connection_configured">USB device configured by host</string>
  <string name="usb_connection_disconnected">Not connected</string>
  <string name="usb_connection_attached">USB cable connected</string>
  <string name="usb_connection_unknown">Connection not detected</string>

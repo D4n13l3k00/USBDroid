@@ -28,11 +28,11 @@ class FolderImage(private val context: Context) {
   }
  }
  private data class Source(val relative: String, val size: Long, val directory: Boolean, val file: DocumentFile?)
- suspend fun estimate(location: String, filesystem: ImageFilesystem, extraMiB: Long): FolderEstimate = withContext(Dispatchers.IO) {
+ suspend fun estimate(location: String, filesystem: ImageFilesystem, extraMiB: Long, layout: dev.usbdroid.data.ImageLayout = dev.usbdroid.data.ImageLayout.NONE): FolderEstimate = withContext(Dispatchers.IO) {
   val (sources, _) = scan(location)
   val total = sources.filterNot { it.directory }.fold(0L) { sum, file -> Math.addExact(sum, file.size) }
   FolderLayoutPolicy.validate(sources.map { it.relative to if(it.directory) 0L else it.size }, filesystem)
-  val imageBytes = imageBytes(total, sources.size, filesystem, extraMiB)
+  val imageBytes = imageBytes(total, sources.size, filesystem, extraMiB) + if(layout == dev.usbdroid.data.ImageLayout.NONE) 0 else 2097152L
   FolderEstimate(total, sources.count { !it.directory }, imageBytes - total, imageBytes, android.os.StatFs(context.app.library.directory.path).availableBytes)
  }
  private fun scan(location: String): Pair<List<Source>, String?> {
@@ -71,20 +71,20 @@ class FolderImage(private val context: Context) {
   }
   return sources to physical
  }
- suspend fun create(location: String, title: String, filesystem: ImageFilesystem, extraMiB: Long, progress: suspend (FolderImageProgress) -> Unit): ImageEntry = withContext(Dispatchers.IO) {
+ suspend fun create(location: String, title: String, filesystem: ImageFilesystem, extraMiB: Long, layout: dev.usbdroid.data.ImageLayout = dev.usbdroid.data.ImageLayout.NONE, progress: suspend (FolderImageProgress) -> Unit): ImageEntry = withContext(Dispatchers.IO) {
   require(filesystem != ImageFilesystem.NONE)
   require(extraMiB in 16..1048576)
   val (sources, physical) = scan(location)
   val total = sources.filterNot { it.directory }.fold(0L) { sum, file -> Math.addExact(sum, file.size) }
   FolderLayoutPolicy.validate(sources.map { it.relative to if(it.directory) 0L else it.size }, filesystem)
-  val mib = imageBytes(total, sources.size, filesystem, extraMiB) / 1048576
+  val mib = imageBytes(total, sources.size, filesystem, extraMiB) / 1048576 + if(layout == dev.usbdroid.data.ImageLayout.NONE) 0 else 2
   val library = context.app.library; val directory = library.directory
   require(android.os.StatFs(directory.path).availableBytes >= Math.multiplyExact(mib, 1048576L)) { "Not enough space for the temporary image" }
   val staging = File(directory, ".${UUID.randomUUID()}.partial")
   var mounted: LocalImage? = null
   try {
    RandomAccessFile(staging, "rw").use { it.setLength(mib * 1048576) }
-   ImageFormatter.format(context, staging, directory, filesystem)
+   ImageFormatter.format(context, staging, directory, filesystem, layout)
    mounted = try { context.app.imageAccess.mount(staging.path, title, false) } catch(e: Exception) {
     throw IllegalStateException(context.getString(dev.usbdroid.R.string.folder_format_mount_failed, filesystem.label), e)
    }

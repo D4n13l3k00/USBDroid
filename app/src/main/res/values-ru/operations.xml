@@ -46,7 +46,7 @@
  <string name="settings_images_downloads">Образы и загрузки</string>
  <string name="settings_support">Помощь и информация</string>
  <string name="usb_connection_title">Подключение к компьютеру</string>
- <string name="usb_connection_configured">Подключён к компьютеру</string>
+ <string name="usb_connection_configured">USB-устройство настроено хостом</string>
  <string name="usb_connection_disconnected">Не подключён</string>
  <string name="usb_connection_attached">USB-кабель подключён</string>
  <string name="usb_connection_unknown">Подключение не определено</string>

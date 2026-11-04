@@ -1,0 +1,22 @@
+<resources>
+ <string name="image_information">Информация об образе</string>
+ <string name="partition_number">Раздел %1$d</string>
+ <string name="fs_check">Проверить файловую систему</string>
+ <string name="fs_repair">Исправить</string>
+ <string name="fs_repair_description">Исправление выполняется на копии. Резервная копия сохраняется; исходный файл заменяется только после успешной проверки. Нужно свободного места: %1$s.</string>
+ <string name="fs_volume">Том</string>
+ <string name="fs_label">Метка: %1$s</string>
+ <string name="fs_partition_size">Размер раздела: %1$s</string>
+ <string name="fs_free">Свободно: %1$s</string>
+ <string name="fs_free_mount">Доступно после открытия на телефоне</string>
+ <string name="fs_detach">Перед проверкой размонтируйте образ на телефоне и извлеките его из USB.</string>
+ <string name="fs_ntfs_limited">NTFS: только базовая проверка. Для полной проверки нужен chkdsk в Windows.</string>
+ <string name="fs_clean">Проверка пройдена</string>
+ <string name="fs_not_clean">Проверка не подтвердила целостность файловой системы</string>
+ <string name="fs_export_backup">Экспортировать резервную копию</string>
+ <string name="fs_check_button">Проверить</string>
+ <string name="fs_checked_at">Последняя проверка: %1$s</string>
+ <string name="folder_mtp_usb_busy">USB занят MTP-папкой</string>
+ <string name="fs_unknown">Не определена</string>
+ <string name="fs_btrfs_readonly">Btrfs: доступна проверка без автоматического исправления.</string>
+</resources>

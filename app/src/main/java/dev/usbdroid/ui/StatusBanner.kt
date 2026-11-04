@@ -24,9 +24,13 @@ import org.json.JSONObject
    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
     Icon(Icons.Rounded.Usb, null, tint = if(hosted.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
     Column {
-     Text(when { hosted.isNotEmpty() -> stringResource(R.string.usb_hosted_count, hosted.size); state.folderShare != null -> stringResource(R.string.folder_mtp_active); state.localImages.isNotEmpty() -> stringResource(R.string.local_mounted); else -> stringResource(R.string.usb_idle) }, style = MaterialTheme.typography.titleSmall)
+     Text(when { hosted.isNotEmpty() -> stringResource(R.string.usb_assigned_count, hosted.size); state.folderShare != null -> stringResource(if(!state.folderShare.running) R.string.folder_mtp_stopped else if(state.folderShare.connected) R.string.folder_mtp_active else R.string.folder_mtp_ready); state.localImages.isNotEmpty() -> stringResource(R.string.local_mounted); else -> stringResource(R.string.usb_idle) }, style = MaterialTheme.typography.titleSmall)
      hosted.forEach { lun -> Text("${state.images.find { it.physicalPath == lun.file }?.title ?: java.io.File(lun.file).name} · ${hostModeText(if(lun.cdrom) dev.usbdroid.usb.HostMode.CDROM else if(lun.readOnly) dev.usbdroid.usb.HostMode.READ_ONLY else dev.usbdroid.usb.HostMode.WRITABLE)}", style = MaterialTheme.typography.bodySmall) }
     }
+   }
+   if(hosted.isNotEmpty()) {
+    Text(usbConnectionText(state.usb.cable), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(stringResource(R.string.usb_access_unavailable), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
    }
    state.folderShare?.let { share -> Text(java.io.File(share.folder).name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
    state.localImages.forEach { image -> Text("${image.title} · ${stringResource(R.string.mount_phone_mode, stringResource(if(image.readOnly) R.string.folder_read_only else R.string.folder_read_write))}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }

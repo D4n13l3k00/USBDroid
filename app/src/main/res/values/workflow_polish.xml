@@ -21,7 +21,7 @@
  <string name="download_remaining">Remaining: %1$s</string>
  <string name="download_open_image">Open image</string>
  <string name="mount_phone_mode">Open on phone · %1$s</string>
- <string name="mount_computer_mode">Connected to computer · %1$s</string>
+ <string name="mount_computer_mode">Assigned to USB · %1$s</string>
  <string name="error_image">Could not open image</string>
  <string name="error_image_hint">Check the image format and whether the filesystem is supported by the phone.</string>
  <string name="recovery_title">Interrupted file operation</string>

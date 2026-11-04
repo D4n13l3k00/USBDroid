@@ -18,7 +18,7 @@ import org.json.JSONObject
 import java.io.File
 import java.util.UUID
 
-data class LocalImage(val id: String, val image: String, val title: String, val directory: String, val loop: String, val readOnly: Boolean, val offset: Long, val alias: String = "")
+data class LocalImage(val id: String, val image: String, val title: String, val directory: String, val loop: String, val readOnly: Boolean, val offset: Long, val alias: String = "", val partition: Int = 0, val bytes: Long = 0)
 data class ImageFile(val relative: String, val name: String, val directory: Boolean, val size: Long, val modified: Long)
 
 class ImageAccess(private val context: Context, private val usb: UsbController) {
@@ -38,37 +38,39 @@ class ImageAccess(private val context: Context, private val usb: UsbController) 
   val state = JSONObject(journal.readText())
   if(state.getString("boot") != boot()) return emptyList()
   val list = state.getJSONArray("mounts")
-  return (0 until list.length()).map { list.getJSONObject(it) }.map { LocalImage(it.getString("id"), it.getString("image"), it.getString("title"), it.getString("directory"), it.getString("loop"), it.getBoolean("readOnly"), it.optLong("offset"), it.optString("alias")) }
+  return (0 until list.length()).map { list.getJSONObject(it) }.map { LocalImage(it.getString("id"), it.getString("image"), it.getString("title"), it.getString("directory"), it.getString("loop"), it.getBoolean("readOnly"), it.optLong("offset"), it.optString("alias"), it.optInt("partition"), it.optLong("bytes")) }
  }
  private fun save(values: List<LocalImage>) {
   val array = JSONArray()
-  values.forEach { array.put(JSONObject().put("id", it.id).put("image", it.image).put("title", it.title).put("directory", it.directory).put("loop", it.loop).put("readOnly", it.readOnly).put("offset", it.offset).put("alias", it.alias)) }
+  values.forEach { array.put(JSONObject().put("id", it.id).put("image", it.image).put("title", it.title).put("directory", it.directory).put("loop", it.loop).put("readOnly", it.readOnly).put("offset", it.offset).put("alias", it.alias).put("partition", it.partition).put("bytes", it.bytes)) }
   val temp = File(context.filesDir, "local-mounts.tmp")
   temp.writeText(JSONObject().put("boot", boot()).put("mounts", array).toString()); check(temp.renameTo(journal))
   _mounts.value = values.filter { mounted(it.directory) }
   context.contentResolver.notifyChange(DocumentsContract.buildRootsUri("${context.packageName}.images"), null)
  }
  suspend fun refresh() = usb.serialized { _mounts.value = load().filter { mounted(it.directory) } }
- suspend fun mount(image: String, title: String, readOnly: Boolean): LocalImage {
+ suspend fun mount(image: String, title: String, readOnly: Boolean, partition: Int? = null): LocalImage {
   val status = usb.inspect(); check(status.root) { status.error ?: "Root required" }
   return usb.serialized {
    val path = run("readlink -f ${q(image)}"); require(path.startsWith('/'))
-   val entries = load(); entries.firstOrNull { it.image == path && mounted(it.directory) }?.let { return@serialized it }
+   val entries = load(); entries.firstOrNull { it.image == path && mounted(it.directory) }?.let { require(partition == null || it.partition == partition) { "Unmount the current partition first" }; return@serialized it }
    require(status.luns.none { it.file == path || it.file == image }) { "Eject the image from USB first" }
    val currentUsb = run("for p in /config/usb_gadget/*/functions/mass_storage.*/lun.*/file /sys/kernel/config/usb_gadget/*/functions/mass_storage.*/lun.*/file /sys/class/android_usb/android*/f_mass_storage/lun*/file; do [ -f \"\$p\" ] && cat \"\$p\"; done; true")
    require(currentUsb.lines().none { it == path || it == image }) { "Eject the image from USB first" }
-   val header = File.createTempFile("image-header", ".bin", context.cacheDir)
-   val offset = try { run("set -e; dd if=${q(path)} of=${q(header.path)} bs=512 count=34 2>/dev/null; chmod 644 ${q(header.path)}"); if(path.endsWith(".iso", true)) 0L else AccessPolicy.offset(header.readBytes(), run("stat -c %s ${q(path)}").toLong()) } finally { header.delete() }
+   val inspector=ImageInspector(context)
+   val info=inspector.inspect(path)
+   val selected=info.partitions.firstOrNull { partition == null || it.partition.number==partition } ?: error("Partition not found")
+   val offset=selected.partition.offset
    val id = UUID.randomUUID().toString(); val directory = "/data/local/tmp/usbdroid-images/$id"
    val loop = run("losetup -f"); require(loop.matches(Regex("/dev/(block/)?loop[0-9]+"))) { "No loop device available" }
-   val ro = readOnly || path.endsWith(".iso", true)
-   val entry = LocalImage(id, path, title, directory, loop, ro, offset, AccessPolicy.loopAlias(id))
+   val ro = readOnly || path.endsWith(".iso", true) || selected.filesystem in setOf("ISO9660","UDF")
+   val entry = LocalImage(id, path, title, directory, loop, ro, offset, AccessPolicy.loopAlias(id), selected.partition.number, selected.partition.bytes)
    run("mkdir -p ${q(directory)}")
    save(entries + entry)
    try {
     run("set -e; mkdir -p /data/local/tmp/ud-loop; chmod 700 /data/local/tmp/ud-loop; test ! -e ${q(entry.alias)}; test ! -L ${q(entry.alias)}; touch ${q(entry.alias)}; mount --bind ${q(path)} ${q(entry.alias)}")
-    run("losetup ${if(ro) "-r" else ""} -o $offset ${q(loop)} ${q(entry.alias)}")
-    run("mount -o ${if(ro) "ro" else "rw"},nodev,nosuid,noexec ${q(loop)} ${q(directory)}")
+    run("losetup ${if(ro) "-r" else ""} -o $offset -S ${selected.partition.bytes} ${q(loop)} ${q(entry.alias)}")
+    run("mount -o ${if(ro) "ro" else "rw"}${if(ro && selected.filesystem in setOf("ext3","ext4")) ",noload" else ""},nodev,nosuid,noexec ${q(loop)} ${q(directory)}")
     check(mounted(directory)) { "Filesystem was not mounted" }; save(entries + entry); entry
    } catch(e: Exception) {
     val cleanup = runCatching { if(mounted(directory)) run("umount ${q(directory)}"); if(ownsLoop(entry)) run("losetup -d ${q(loop)}"); removeAlias(entry) }

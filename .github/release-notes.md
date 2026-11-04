@@ -1,37 +1,47 @@
-## 🇷🇺 Русский
+# USBDroid 1.3.0
+
+## Русский
 
 ### Новое
 
-- Папки можно подключать через MTP или временный образ, который компьютер видит как USB-накопитель. Для MTP доступны режимы только чтения и чтения с записью.
-- Временные образы поддерживают FAT, FAT32, exFAT, ext4, NTFS и Btrfs. Перед созданием можно проверить размер файлов, запас места и итоговый размер образа.
-- Изменения из образа можно скопировать обратно в папку. Перед копированием приложение показывает новые файлы и конфликты; замена существующих требует подтверждения. Удалённые из образа файлы остаются в исходной папке.
-- Образы можно монтировать на телефоне для чтения или записи и открывать во встроенном файловом менеджере либо системном проводнике.
-- В файловом менеджере появились множественный выбор, копирование и перемещение, поиск и переход по папкам через строку пути.
-- После прерванного редактирования сохранённую копию можно восстановить в образ или экспортировать отдельно.
+- **Создание образов с MBR и GPT.** Можно выбрать образ без таблицы разделов или с одним разделом MBR/GPT. Выбор доступен и при создании образа из папки.
+- **Экран информации об образе:** таблица разделов, файловые системы, метки томов, размеры разделов и доступное свободное место.
+- **Выбор раздела** при открытии образа на телефоне.
+- **Проверка и исправление файловых систем.** Исправление выполняется на копии с сохранением резервной копии исходного образа. Резервную копию можно экспортировать.
 
-### Исправления и интерфейс
+### Исправления USB
 
-- Обновлены первоначальная настройка и карточки образов. У MTP-папок теперь тот же стиль кнопок и меню; анимации раскрытия стали быстрее.
-- Статусы показывают, где подключён образ: на компьютере или телефоне, и в каком режиме.
-- Добавлена проверка доступных USB-режимов. Сообщения об ошибках стали конкретнее, с действиями для повторной проверки или восстановления.
-- В загрузках отображается оставшийся объём. После завершения можно сразу открыть карточку образа.
-- Исправлены создание временных образов и права файлов при копировании обратно в папку. Перед размонтированием на телефоне завершается запись.
+- Исправлена ошибка **`Device or resource busy`** при подключении образов на устройствах, где системный USB Gadget HAL повторно занимает контроллер. Режим совместимости теперь освобождает его через AIDL HAL и восстанавливает исходные USB-функции после извлечения.
+- **Режим совместимости добавлен в первоначальную настройку** — на шаги выбора USB-системы и подключения тестового образа.
+- При обнаружении занятого контроллера приложение объясняет причину и предлагает включить совместимость. Повторное подключение выполняется пользователем.
+- Уточнены статусы USB и MTP: готовность к подключению, фактическое соединение и приостановка USB.
+- Исправлена очистка MTP-конфигурации при завершении доступа к папке.
 
-## 🇬🇧 English
+### Ограничения
+
+- Для NTFS доступна базовая проверка; полная проверка выполняется через `chkdsk` в Windows.
+- Для Btrfs доступна проверка без автоматического исправления.
+- Поддержка USB Mass Storage и загрузки BIOS/UEFI зависит от ядра телефона и компьютера.
+
+## English
 
 ### New
 
-- Share folders through MTP or a temporary image that appears on the computer as USB storage. MTP supports read-only and read-write modes.
-- Temporary images support FAT, FAT32, exFAT, ext4, NTFS and Btrfs. Check the file size, reserved space and total image size before creating one.
-- Copy changes from an image back to its source folder. The app previews new files and conflicts, and asks before replacing existing files. Files deleted from the image remain in the source folder.
-- Mount images on the phone for reading or writing, then open them in the built-in file manager or Android’s system file browser.
-- The file manager now supports multiple selection, copying and moving, search, and folder navigation through breadcrumbs.
-- Recover a saved copy of an interrupted edit to the image, or export it separately.
+- **Create images with MBR or GPT.** Choose an image without a partition table or with a single MBR/GPT partition. This option is also available when creating an image from a folder.
+- **Image information screen:** partition table, file systems, volume labels, partition sizes, and available free space.
+- **Partition selection** when opening an image on the phone.
+- **File system checks and repairs.** Repairs run on a copy while preserving a backup of the original image. The backup can be exported.
 
-### Fixes and UI
+### USB fixes
 
-- Updated first-run setup and image cards. MTP folders now use the same button and menu styles, with faster expansion animations.
-- Status labels show whether an image is connected to the computer or mounted on the phone, along with its access mode.
-- Added USB mode availability checks. Error messages are more specific and include actions to retry or recover.
-- Downloads show the remaining size and a shortcut to the image when finished.
-- Fixed temporary image creation and file permissions when copying changes back. Pending writes are flushed before unmounting on the phone.
+- Fixed **`Device or resource busy`** errors when connecting images on devices where the system USB Gadget HAL reclaims the controller. Compatibility mode now releases it through the AIDL HAL and restores the original USB functions after ejecting.
+- **Compatibility mode is now available during first-run setup**, on the USB-system selection and test-image connection steps.
+- When the controller is occupied, the app explains the cause and offers to enable compatibility mode. Reconnecting remains a user action.
+- Clarified USB and MTP statuses: ready to connect, actually connected, and USB suspended.
+- Fixed MTP configuration cleanup when folder sharing ends.
+
+### Limitations
+
+- NTFS supports basic checks; use `chkdsk` in Windows for a full check.
+- Btrfs supports checks without automatic repair.
+- USB Mass Storage and BIOS/UEFI boot support depend on the phone kernel and the computer.

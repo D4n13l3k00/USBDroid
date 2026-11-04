@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.util.UUID
 
-data class FolderShare(val folder: String, val gadget: String, val sandbox: String, val pid: Int)
+data class FolderShare(val folder: String, val gadget: String, val sandbox: String, val pid: Int, val connected: Boolean = false, val running: Boolean = true)
 class FolderUsb(private val context: Context, private val usb: UsbController, private val access: ImageAccess) {
  private val journal = File(context.filesDir, "folder-mtp.json")
  private val _state = MutableStateFlow<FolderShare?>(null)
@@ -21,8 +21,19 @@ class FolderUsb(private val context: Context, private val usb: UsbController, pr
  private fun q(s: String) = RootShell.quote(s)
  private fun run(s: String) = RootShell.inMountNamespace(s)
  private fun boot() = run("cat /proc/sys/kernel/random/boot_id")
+ private fun connected(gadget: String): Boolean {
+  val controller=run("cat ${q("$gadget/UDC")} 2>/dev/null || true")
+  if(!controller.matches(Regex("[A-Za-z0-9_.:-]+"))) return false
+  return dev.usbdroid.usb.ConnectionState.from(run("cat ${q("/sys/class/udc/$controller/state")} 2>/dev/null || true")) == dev.usbdroid.usb.ConnectionState.CONFIGURED
+ }
  suspend fun refresh() = usb.serialized {
-  _state.value = if(!journal.exists()) null else JSONObject(journal.readText()).takeIf { it.getString("boot") == boot() }?.let { FolderShare(it.getString("folder"), it.getString("gadget"), it.getString("sandbox"), it.optInt("pid")) }
+  if(!journal.exists()) { _state.value=null; return@serialized }
+  val record=JSONObject(journal.readText())
+  if(record.getString("boot")!=boot()) { journal.delete(); _state.value=null; return@serialized }
+  val sandbox=record.getString("sandbox"); val gadget=record.getString("gadget"); val pid=record.optInt("pid")
+  val live=pid>1 && run("readlink /proc/$pid/root 2>/dev/null || true")==sandbox && run("cat ${q("$gadget/UDC")} 2>/dev/null || true").isNotBlank()
+  if(!live) { try { stopNow(record) } catch(e: Exception) { _state.value=FolderShare(record.getString("folder"),gadget,sandbox,pid,running=false); throw e }; return@serialized }
+  _state.value=FolderShare(record.getString("folder"),gadget,sandbox,pid,connected(gadget))
  }
  private fun save(state: JSONObject) {
   val temp = File(context.filesDir, "folder-mtp.tmp"); temp.writeText(state.toString()); check(temp.renameTo(journal))
@@ -79,7 +90,7 @@ class FolderUsb(private val context: Context, private val usb: UsbController, pr
     require(controller.isNotBlank()) { "USB controller unavailable" }
     controllers.keys().forEach { p -> require(run("cat ${q(p)}") == controllers.getString(p)) { "USB configuration changed" }; run("printf '\\n' > ${q(p)}") }
     UsbIo(SuShell).write("$gadget/UDC", controller)
-    _state.value = FolderShare(path, gadget, sandbox, pid)
+    _state.value = FolderShare(path, gadget, sandbox, pid, connected(gadget))
    } catch(e: Exception) { runCatching { stopNow(state) }.onFailure { e.addSuppressed(it) }; throw e }
   }
  }
@@ -87,20 +98,28 @@ class FolderUsb(private val context: Context, private val usb: UsbController, pr
   require(state.getString("boot") == boot()) { "Folder share belongs to a previous boot" }
   val gadget = state.getString("gadget"); val sandbox = state.getString("sandbox")
   require(gadget.endsWith("/usbdroid_mtp") && sandbox.matches(Regex("/data/local/tmp/usbdroid-mtp-[a-f0-9-]+")))
-  run("[ ! -f ${q("$gadget/UDC")} ] || printf '\\n' > ${q("$gadget/UDC")}")
+  val io = UsbIo(SuShell)
+  if(io.exists("$gadget/UDC")) io.write("$gadget/UDC", "")
   val pid = state.optInt("pid")
   if(pid > 1 && run("readlink /proc/$pid/root 2>/dev/null || true") == sandbox) run("kill -TERM $pid; for i in 1 2 3 4 5; do kill -0 $pid 2>/dev/null || exit 0; sleep 0.2; done; kill -KILL $pid 2>/dev/null || true")
   listOf("$sandbox/dev/mtp", "$sandbox/storage", "$sandbox/proc").forEach { target ->
    if(RootShell.isMounted(target)) run("umount ${q(target)}")
   }
+  val link="$gadget/configs/c.1/mtp"; val function="$gadget/functions/ffs.usbdroid_mtp"
+  run("set -e; if [ -L ${q(link)} ]; then test \"\$(readlink -f ${q(link)})\" = \"\$(readlink -f ${q(function)})\"; rm ${q(link)}; fi; if [ -d ${q(function)} ]; then rmdir ${q(function)}; fi")
   val controllers = state.getJSONObject("controllers"); controllers.keys().forEach { node ->
    val current = run("cat ${q(node)}")
    require(current.isBlank() || current == controllers.getString(node)) { "USB controller changed; original configuration was not overwritten" }
    if(current.isBlank()) UsbIo(SuShell).write(node, controllers.getString(node))
   }
-  run("set -e; rm -f ${q("$sandbox/umtprd")} ${q("$sandbox/config")}; rmdir ${q("$sandbox/storage")} ${q("$sandbox/dev/mtp")} ${q("$sandbox/dev")} ${q("$sandbox/tmp")}; if [ -d ${q("$sandbox/proc")} ]; then rmdir ${q("$sandbox/proc")}; fi; rmdir ${q(sandbox)}")
+  run("set -e; rm -f ${q("$sandbox/umtprd")} ${q("$sandbox/config")}; for p in ${q("$sandbox/storage")} ${q("$sandbox/dev/mtp")} ${q("$sandbox/dev")} ${q("$sandbox/tmp")} ${q("$sandbox/proc")} ${q(sandbox)}; do if [ -d \"\$p\" ]; then rmdir \"\$p\"; fi; done")
   journal.delete(); _state.value = null
  }
  suspend fun stop() = usb.serialized { if(journal.exists()) { val state = JSONObject(journal.readText()); if(state.getString("boot") != boot()) { journal.delete(); _state.value = null } else stopNow(state) } }
- suspend fun alive(): Boolean = usb.serialized { val s = _state.value ?: return@serialized false; run("readlink /proc/${s.pid}/root 2>/dev/null || true") == s.sandbox && run("cat ${q("${s.gadget}/UDC")}").isNotBlank() }
+ suspend fun alive(): Boolean = usb.serialized {
+  val share=_state.value ?: return@serialized false
+  val live=share.pid>1 && run("readlink /proc/${share.pid}/root 2>/dev/null || true")==share.sandbox && run("cat ${q("${share.gadget}/UDC")} 2>/dev/null || true").isNotBlank()
+  _state.value=share.copy(connected=live && connected(share.gadget),running=live)
+  live
+ }
 }

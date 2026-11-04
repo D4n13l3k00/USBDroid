@@ -20,7 +20,7 @@ class FolderSharingService : Service() {
  private fun notification(error: Boolean = false): Notification {
   val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
   val stop = PendingIntent.getService(this, 0, Intent(this, FolderSharingService::class.java).setAction("stop"), PendingIntent.FLAG_IMMUTABLE)
-  return Notification.Builder(this, "folder-sharing").setSmallIcon(android.R.drawable.stat_sys_upload).setContentTitle(getString(if(error) R.string.folder_mtp_stopped else R.string.folder_mtp_active)).setContentText(app.folderUsb.state.value?.folder).setContentIntent(open).setOngoing(true).addAction(Notification.Action.Builder(null, getString(R.string.folder_stop), stop).build()).build()
+  return Notification.Builder(this, "folder-sharing").setSmallIcon(android.R.drawable.stat_sys_upload).setContentTitle(getString(if(error || app.folderUsb.state.value?.running==false) R.string.folder_mtp_stopped else if(app.folderUsb.state.value?.connected==true) R.string.folder_mtp_active else R.string.folder_mtp_ready)).setContentText(app.folderUsb.state.value?.folder).setContentIntent(open).setOngoing(true).addAction(Notification.Action.Builder(null, getString(R.string.folder_stop), stop).build()).build()
  }
  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
   startForeground(8, notification())
@@ -30,10 +30,13 @@ class FolderSharingService : Service() {
    try {
    app.folderUsb.refresh()
    if(app.folderUsb.state.value == null) { stopSelf(); return@launch }
+   var previousConnected=app.folderUsb.state.value?.connected
    while(isActive) {
     delay(3000)
     if(app.folderUsb.state.value == null) { stopSelf(); break }
     if(!app.folderUsb.alive()) { getSystemService(NotificationManager::class.java).notify(8, notification(true)); break }
+    val connected=app.folderUsb.state.value?.connected
+    if(connected!=previousConnected) { previousConnected=connected; getSystemService(NotificationManager::class.java).notify(8,notification()) }
    }
    } catch(e: CancellationException) { throw e } catch(e: Exception) { android.util.Log.e("USBDroid", "MTP monitoring failed", e); getSystemService(NotificationManager::class.java).notify(8, notification(true)) }
   }

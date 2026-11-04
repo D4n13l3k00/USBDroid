@@ -46,7 +46,7 @@ import dev.usbdroid.usb.HostMode
  fun advance() { model.setup(step = step + 1); if(step == 0 && !state.rootChecked || step == 3) model.inspect() }
  BackHandler { model.setup(step = step - 1) }
  if(step > 0 && state.rootChecked && !state.usb.root && !state.rootBusy) { RootRequiredScreen(state, model); return }
- val nextEnabled = !finishing && !state.working("setup") && !state.usbWorking() && when(step) { 0, 1 -> !state.rootBusy && (step == 0 || state.usb.root); 2 -> state.storage.isNotEmpty(); 4 -> state.usb.luns.isNotEmpty(); 5 -> active; 6 -> p.diskResult in listOf("USB", "CDROM"); else -> true }
+ val nextEnabled = !finishing && !state.working("settings") && !state.working("setup") && !state.usbWorking() && when(step) { 0, 1 -> !state.rootBusy && (step == 0 || state.usb.root); 2 -> state.storage.isNotEmpty(); 4 -> state.usb.luns.isNotEmpty(); 5 -> active; 6 -> p.diskResult in listOf("USB", "CDROM"); else -> true }
  Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.setup_title)) }, navigationIcon = { IconButton(onClick = { model.setup(step = step - 1) }) { Icon(Icons.Rounded.ArrowBack, stringResource(R.string.create_back)) } }) }, bottomBar = {
   Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) { Row(Modifier.navigationBarsPadding().fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
    if(step == 6 || step == 7) TextButton(enabled = !finishing && !state.working("setup"), onClick = { model.setup(step = step + 1, disk = if(step == 6) "NOT_TESTED" else null, boot = if(step == 7) "NOT_TESTED" else null) }) { Text(stringResource(R.string.setup_later)) }
@@ -59,6 +59,11 @@ import dev.usbdroid.usb.HostMode
     if(shownStep > 0) SetupStepProgress(shownStep)
     SetupHero(shownStep, icons[shownStep], busy = (shownStep in 1..4 && state.rootBusy) || (shownStep == 5 && (working || state.usbWorking())) || (shownStep == 8 && finishing), complete = (shownStep == 1 && state.usb.root) || (shownStep == 5 && active) || (shownStep == 6 && p.diskResult in listOf("USB", "CDROM")))
     Text(stringResource(titles[shownStep]), Modifier.fillMaxWidth(), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
+    if(shownStep in 4..5) {
+     Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainerLow) {
+      ListItem(headlineContent = { Text(stringResource(R.string.usb_compatibility)) }, supportingContent = { Text(stringResource(R.string.usb_compatibility_description)) }, leadingContent = { Icon(Icons.Rounded.Build, null, tint = MaterialTheme.colorScheme.primary) }, trailingContent = { Switch(p.usbCompatibility, { model.settings(p.copy(usbCompatibility = it)) }, enabled = !state.working("settings") && !state.usbWorking() && !active) }, colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow))
+     }
+    }
     when(shownStep) {
      0 -> { Text(stringResource(R.string.setup_welcome), style = MaterialTheme.typography.bodyLarge); Text(stringResource(R.string.setup_steps), color = MaterialTheme.colorScheme.onSurfaceVariant) }
      1 -> { Text(stringResource(R.string.root_body)); if(state.usb.root) StatusLine(stringResource(R.string.root_granted)); BusyButton(stringResource(R.string.retry_root), state.rootBusy, model::inspect) }
@@ -75,7 +80,7 @@ import dev.usbdroid.usb.HostMode
       val configfs = state.usb.luns.any { it.path.contains("/functions/") }
       val legacy = state.usb.luns.any { !it.path.contains("/functions/") }
       val systems = buildList { add("auto" to stringResource(R.string.setup_auto)); if(configfs) add("configfs" to "ConfigFS"); if(legacy) { add("setprop" to "Android setprop"); add("functions" to "Android functions"); add("samsung" to "Samsung UMS") } }
-      systems.forEach { (id, title) -> ListItem(headlineContent = { Text(title) }, leadingContent = { RadioButton(p.usbSystem == id, { model.settings(p.copy(usbSystem = id)) }) }, colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) }
+      systems.forEach { (id, title) -> ListItem(headlineContent = { Text(title) }, leadingContent = { RadioButton(p.usbSystem == id, { model.settings(p.copy(usbSystem = id)) }, enabled = !state.working("settings") && !state.usbWorking()) }, colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) }
       BusyTextButton(stringResource(R.string.setup_refresh), state.rootBusy, model::inspect)
       if(state.usb.luns.isEmpty()) { Text(stringResource(R.string.setup_no_lun), color = MaterialTheme.colorScheme.error); BusyButton(stringResource(R.string.setup_prepare), state.working("prepare"), model::prepare) }
       else { Text(stringResource(R.string.setup_lun_count, state.usb.luns.size)); state.usb.luns.forEach { device -> Text(device.title, style = MaterialTheme.typography.bodySmall) } }
@@ -91,7 +96,7 @@ import dev.usbdroid.usb.HostMode
        HostMode.entries.forEach { option -> Row(verticalAlignment = Alignment.CenterVertically) { RadioButton(mode == option.name, { mode = option.name }, enabled = lun != null && (!option.cd || lun.supportsCdrom) && (lun.supportsReadOnly || option.ro == lun.readOnly)); Text(hostModeText(option)) } }
        val appropriate = (mode == HostMode.CDROM.name) == image.file.extension.equals("iso", true)
        if(!appropriate) BusyButton(stringResource(if(mode == HostMode.CDROM.name) R.string.setup_create_cd else R.string.setup_create_test), state.working("setup-create"), { model.setupCreate(mode == HostMode.CDROM.name) }, Modifier.fillMaxWidth())
-       if(!active) BusyButton(stringResource(R.string.setup_host), state.usbWorking(lun?.path), { if(lun != null) { model.setup(lun = lun.path); model.host(image, lun, HostMode.valueOf(mode)) } }, enabled = appropriate && lun != null && (lun.file.isBlank() || lun.file == image.physicalPath), modifier = Modifier.fillMaxWidth())
+       if(!active) BusyButton(stringResource(R.string.setup_host), state.usbWorking(lun?.path), { if(lun != null) { model.setup(lun = lun.path); model.host(image, lun, HostMode.valueOf(mode)) } }, enabled = !state.working("settings") && appropriate && lun != null && (lun.file.isBlank() || lun.file == image.physicalPath), modifier = Modifier.fillMaxWidth())
        else StatusLine(stringResource(R.string.setup_kernel_ok))
       }
      }

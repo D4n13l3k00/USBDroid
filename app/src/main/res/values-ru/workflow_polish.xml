@@ -21,7 +21,7 @@
  <string name="download_remaining">Осталось: %1$s</string>
  <string name="download_open_image">Открыть образ</string>
  <string name="mount_phone_mode">Открыт на телефоне · %1$s</string>
- <string name="mount_computer_mode">Подключён к компьютеру · %1$s</string>
+ <string name="mount_computer_mode">Назначен USB · %1$s</string>
  <string name="error_image">Не удалось открыть образ</string>
  <string name="error_image_hint">Проверьте формат образа и поддержку файловой системы на телефоне.</string>
  <string name="recovery_title">Прерванная операция с файлами</string>

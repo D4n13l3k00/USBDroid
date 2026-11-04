@@ -61,6 +61,7 @@ import dev.usbdroid.usb.*
        Column { Text(algorithm); Text(if(checksum?.state == "DONE") checksum.result.substringAfter('\n').take(16) + "…" else stringResource(if(calculating) R.string.checksum_calculating else R.string.checksum_hold), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
       }
      }
+     DropdownMenuItem(text = { Text(stringResource(R.string.image_information)) }, leadingIcon = { Icon(Icons.Rounded.Info, null) }, onClick = { actionsMenu=false; action(14) })
      DropdownMenuItem(text = { Text(stringResource(if(favorite) R.string.favorite_remove else R.string.favorite_add)) }, leadingIcon = { Icon(if(favorite) Icons.Rounded.Star else Icons.Rounded.StarBorder, null) }, onClick = { actionsMenu = false; action(12) })
      HorizontalDivider()
      val labels = listOf(R.string.ui_115, R.string.ui_122, R.string.ui_117, R.string.ui_2, R.string.ui_118, R.string.ui_119, R.string.ui_120, R.string.ui_121)
@@ -93,7 +94,7 @@ import dev.usbdroid.usb.*
    }
    CardAction(hostModeText(HostMode.CDROM), Icons.Rounded.Album, { lun?.let { host(it, HostMode.CDROM) { onExpandedChange(false) } } }, Modifier.fillMaxWidth(), enabled = available(HostMode.CDROM) && !busy && !state.rootBusy, accented = HostMode.CDROM.name == state.preferences.lastHostMode)
    if(!state.rootBusy && lun != null && lun.file.isBlank()) {
-    val reason = when { state.folderShare != null -> R.string.folder_mtp_active; !lun.supportsCdrom -> R.string.host_cd_reason; !lun.supportsReadOnly -> R.string.host_ro_reason; else -> null }
+    val reason = when { state.folderShare != null -> R.string.folder_mtp_usb_busy; !lun.supportsCdrom -> R.string.host_cd_reason; !lun.supportsReadOnly -> R.string.host_ro_reason; else -> null }
     if(reason != null) Text(stringResource(reason), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
    }
    } else {

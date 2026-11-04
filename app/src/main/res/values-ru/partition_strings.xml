@@ -1,0 +1,9 @@
+<resources>
+ <string name="image_layout">Таблица разделов</string>
+ <string name="layout_none">Без таблицы</string>
+ <string name="layout_hint">MBR и GPT создают один раздел. Размер образа включает таблицу разделов.</string>
+ <string name="usb_assigned_count">Назначено образов USB: %1$d</string>
+ <string name="usb_access_unavailable">Обращения к накопителю: нет данных ядра</string>
+ <string name="usb_connection_suspended">USB-соединение приостановлено</string>
+ <string name="folder_mtp_ready">MTP готов; ожидание подключения по USB</string>
+</resources>

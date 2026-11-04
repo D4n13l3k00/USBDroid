@@ -205,7 +205,7 @@ class DeviceTests {
   compose.waitForIdle(); assertEquals(androidx.compose.ui.graphics.Color.Black.value.toLong(), background)
  }
  @Test fun creationUsesFullScreenAndValidatesBeforeStarting() {
-  compose.setContent { USBDroidTheme(Preferences()) { CreateImageScreen(listOf(StorageLocation("default", "Images", "/tmp", "FILE", true)), {}, { _, _, _, _, _ -> }) } }
+  compose.setContent { USBDroidTheme(Preferences()) { CreateImageScreen(listOf(StorageLocation("default", "Images", "/tmp", "FILE", true)), {}, { _, _, _, _, _, _ -> }) } }
   compose.onNodeWithText(app.getString(R.string.create_title)).assertIsDisplayed()
   compose.onNodeWithText(app.getString(R.string.create_button)).assertIsNotEnabled()
   compose.onNodeWithText(app.getString(R.string.create_filename)).performTextInput("test-volume")

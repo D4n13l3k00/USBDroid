@@ -10,7 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -21,16 +22,30 @@ import dev.usbdroid.data.ImageEntry
 import dev.usbdroid.files.LocalImage
 
 @Composable fun LocalMountActions(image: ImageEntry, local: LocalImage?, state: AppState, model: AppViewModel, browse: () -> Unit) {
+ val info=state.imageInfo[image.id]
+ var selectedPartition by rememberSaveable(image.id) { mutableStateOf<Int?>(null) }
+ var partitionMenu by remember { mutableStateOf(false) }
+ LaunchedEffect(image.id, image.modified, local?.id) { if(image.physicalPath != null && (info==null || info.modified!=image.modified || info.mountIds!=state.localImages.filter { it.image==image.physicalPath }.map { it.id }.toSet())) model.inspectImage(image) }
+ val partitions=info?.partitions.orEmpty()
+ val chosen=partitions.firstOrNull { it.partition.number==selectedPartition } ?: partitions.firstOrNull()
  val context = LocalContext.current
  val busy = state.imageWorking(image.id) || local?.let { state.working("local-unmount:${it.id}") } == true
  Text(stringResource(R.string.local_card_title), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
  if(local == null) {
+  if(partitions.size>1) Box {
+   TextButton({ partitionMenu=true },enabled=!busy) { Text(stringResource(R.string.partition_number,chosen?.partition?.number ?: 0)+" · "+chosen?.filesystem.orEmpty()); Icon(Icons.Rounded.ExpandMore,null) }
+   DropdownMenu(partitionMenu,{ partitionMenu=false },shape=androidx.compose.foundation.shape.RoundedCornerShape(20.dp),containerColor=MaterialTheme.colorScheme.surfaceContainerHigh) {
+    partitions.forEach { item -> DropdownMenuItem({ Text(stringResource(R.string.partition_number,item.partition.number)+" · "+item.filesystem+" · "+sizeText(item.partition.bytes)) },{ selectedPartition=item.partition.number; partitionMenu=false }) }
+   }
+  }
+
   Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
    listOf(true, false).forEach { readOnly ->
-    CardAction(stringResource(if(readOnly) R.string.folder_read_only else R.string.folder_read_write), if(readOnly) Icons.Rounded.Lock else Icons.Rounded.Edit, { model.mountLocal(image, readOnly) }, Modifier.weight(1f), enabled = !busy && !state.rootBusy && image.physicalPath != null && (readOnly || !image.file.extension.equals("iso", true)))
+    CardAction(stringResource(if(readOnly) R.string.folder_read_only else R.string.folder_read_write), if(readOnly) Icons.Rounded.Lock else Icons.Rounded.Edit, { model.mountLocal(image, readOnly, chosen?.partition?.number) }, Modifier.weight(1f), enabled = !busy && chosen != null && !state.rootBusy && image.physicalPath != null && (readOnly || !image.file.extension.equals("iso", true) && chosen?.filesystem !in setOf("ISO9660","UDF")))
    }
   }
  } else {
+  if(local.partition>0) Text(stringResource(R.string.partition_number,local.partition),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
   Text(stringResource(R.string.mount_phone_mode, stringResource(if(local.readOnly) R.string.folder_read_only else R.string.folder_read_write)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
   Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
   CardAction(stringResource(R.string.local_system_short), Icons.Rounded.FolderOpen, {

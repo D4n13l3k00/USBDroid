@@ -27,6 +27,7 @@ class HostingService: Service() {
      val repairTimes = java.util.ArrayDeque<Long>()
      while(isActive) {
       delay(2000)
+      app.usb.refreshConnection()
       if(!app.settings.flow.first().usbCompatibility) continue
       try {
        when(app.usb.maintainCompatibility()) {
